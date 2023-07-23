@@ -6,6 +6,7 @@
 #include <random>
 #include "LaneAbstract.h"
 
+
 LaneAbstract::LaneAbstract(float lane_length_, float speed_limit_) {
     ID = 0;
     index = 0;
@@ -172,7 +173,7 @@ std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
 
     for (size_t index_ = 0; index_ < car_type_index_list.size(); ++index_) {
         int i = car_type_index_list[index_];
-        Vehicle* vehicle = new Vehicle{this, this->car_type_list[i], this->get_new_car_id(), this->car_length_list[i]};
+        auto* vehicle = new Vehicle{this, this->car_type_list[i], this->get_new_car_id(), this->car_length_list[i]};
         vehicle->set_cf_model(this->cf_name_list[i], this->cf_param_list[i]);
         vehicle->set_lc_model(this->lc_name_list[i], this->lc_param_list[i]);
         if (this->car_initial_speed_list[i] < 0) {
@@ -226,6 +227,7 @@ std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
     }
 
     std::vector<int> result;
+    result.reserve(this->car_list.size());
     for (const auto& car : this->car_list) {
         result.push_back(car->ID);
     }
@@ -343,8 +345,8 @@ void LaneAbstract::record() {
 }
 
 Vehicle * LaneAbstract::make_dummy_car(double pos) {
-    Vehicle* car = new Vehicle{this, VType::OBSTACLE, -1, 1e-5};
-    car->set_cf_model(CFM::DUMMY, {});
+    auto* car = new Vehicle{this, VType::OBSTACLE, -1, 1e-5};
+    car->set_cf_model(CFM::DUMMY, std::map<std::string, double> {});
     car->x = pos + 1e-5;
     car->v = 0;
     car->a = 0;
@@ -409,7 +411,7 @@ void LaneAbstract::car_remove(Vehicle* car, bool put_out_car_has_data) {
 Vehicle* LaneAbstract::make_car(double car_length, VType car_type, double car_pos, double car_speed, double car_acc,
                                 CFM cf_name, const std::map<std::string, double>& cf_param, const std::map<std::string, double>& car_param,
                                 LCM lc_name, const std::map<std::string, double>& lc_param) {
-    Vehicle* car = new Vehicle{this, car_type, this->get_new_car_id(), car_length};
+    auto* car = new Vehicle{this, car_type, this->get_new_car_id(), car_length};
     car->set_cf_model(cf_name, cf_param);
     car->set_lc_model(lc_name, lc_param); // Use an empty string if lc_name is not provided
     car->set_car_param(const_cast<std::map<std::string, double> &>(car_param));
@@ -556,8 +558,6 @@ Vehicle* LaneAbstract::get_relative_car_by_id(int id_, int offset) {
 }
 
 std::pair<Vehicle*, Vehicle*> LaneAbstract::get_relative_car(double pos) {
-    Vehicle* follower_ = nullptr;
-    Vehicle* leader_ = nullptr;
     for (auto car : car_list) {
         if (car->x > pos) {
             return std::make_pair(car->follower, car);
@@ -580,8 +580,17 @@ void LaneAbstract::car_param_update(int id_,
                                     std::map<std::string, double>& car_param) {
     Vehicle* car = get_car(id_);
     if (car != nullptr) {
-        car->cf_model.param_update(cf_param);
-        car->lc_model.param_update(lc_param);
+        car->cf_model->param_update(cf_param);
+        car->lc_model->param_update(lc_param);
         car->set_car_param(car_param);
+    }
+}
+
+LaneAbstract::~LaneAbstract() {
+    for (auto* car : car_list) {
+        delete car;
+    }
+    for (auto* car : dummy_car_list) {
+        delete car;
     }
 }

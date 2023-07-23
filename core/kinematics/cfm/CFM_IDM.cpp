@@ -3,6 +3,7 @@
 //
 
 #include "CFM_IDM.h"
+#include "../../Vehicle.h"
 
 const std::map<std::string, double> CFM_IDM::default_f_param = {
         {"v0", 33.3},

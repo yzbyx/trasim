@@ -6,11 +6,11 @@
 #define TRASIM_LCMODEL_KK_H
 
 
-#include "LCModel.h"
-#include "../../frame/micro/LaneAbstract.h"
-
 #include <random> // Include the <random> header for std::mt1993
 #include <map>
+#include "LCModel.h"
+
+class LaneAbstract;
 
 class LCModel_KK : public LCModel {
 public:

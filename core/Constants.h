@@ -90,9 +90,9 @@ const std::vector<C_Info> ALL_C_INFO = {
 };
 
 enum class Color {
-    RED = 0xFF0000,
+    BLUE = 0x0000FF,
     GREEN = 0x00FF00,
-    BLUE = 0x0000FF
+    RED = 0xFF0000
 };
 
 const std::vector<Color> ALL_COLOR = {
@@ -132,7 +132,7 @@ enum class SECTION_TYPE {
     NO_RIGHT_CAR
 };
 
-std::vector<SECTION_TYPE> ALL_SECTION_TYPE = {
+static const std::vector<SECTION_TYPE> ALL_SECTION_TYPE = {
         SECTION_TYPE::BASE,
         SECTION_TYPE::ON_RAMP,
         SECTION_TYPE::OFF_RAMP,

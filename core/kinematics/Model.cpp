@@ -2,6 +2,8 @@
 // Created by yzbyx on 2023/7/9.
 //
 #include "Model.h"
+#include "../Vehicle.h"
+
 
 void Model::param_update(const std::map<std::string, double>& param) {
     for (const auto& pair : param) {

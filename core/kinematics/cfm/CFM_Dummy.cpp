@@ -3,6 +3,7 @@
 //
 
 #include "CFM_Dummy.h"
+#include "../../Vehicle.h"
 
 double CFM_Dummy::get_expect_dec() {
     return DEFAULT_EXPECT_DEC;

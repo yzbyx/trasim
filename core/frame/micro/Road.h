@@ -9,7 +9,7 @@
 class Road {
 
 public:
-    static int get_new_car_id();
+    int get_new_car_id();
 };
 
 

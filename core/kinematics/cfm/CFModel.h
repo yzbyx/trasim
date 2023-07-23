@@ -8,8 +8,6 @@
 #include <random>
 #include "../Model.h"
 #include "../../Constants.h"
-#include "CFM_IDM.h"
-#include "CFM_Dummy.h"
 
 #define DEFAULT_EXPECT_DEC 3.0
 #define DEFAULT_EXPECT_ACC 3.0
@@ -41,6 +39,6 @@ public:
     double get_speed_limit();
 };
 
-CFModel* get_cf_model(Vehicle* _driver, CFM name, std::map<std::string, double>& param);
+CFModel* get_cf_model(Vehicle* _driver, CFM name, const std::map<std::string, double> &param);
 
 #endif //TRASIM_CFMODEL_H

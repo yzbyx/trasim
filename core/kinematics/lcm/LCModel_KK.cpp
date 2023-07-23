@@ -4,6 +4,9 @@
 
 #include <cstdarg>
 #include "LCModel_KK.h"
+#include "../../frame/micro/LaneAbstract.h"
+#include "../cfm/CFModel.h"
+
 
 LCModel_KK::LCModel_KK(Vehicle* vehicle, const std::map<std::string, double>& l_param)
         : LCModel(vehicle) {
@@ -73,7 +76,7 @@ std::map<std::string, double> LCModel_KK::base_cal() {
     if (this->left_lane != nullptr) {
         Vehicle* _f;
         Vehicle* _l;
-        std::tie(_f, _l) = this->left_lane->get_relative_car(this->vehicle);
+        std::tie(_f, _l) = this->left_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         std::tie(safe_, left_d_l) = this->safe_check(_f, _l);
         if (safe_) {
@@ -91,7 +94,7 @@ std::map<std::string, double> LCModel_KK::base_cal() {
     if (this->right_lane != nullptr) {
         Vehicle* _f;
         Vehicle* _l;
-        std::tie(_f, _l) = this->right_lane->get_relative_car(this->vehicle);
+        std::tie(_f, _l) = this->right_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         std::tie(safe_, right_d_l) = this->safe_check(_f, _l);
         if (safe_) {
@@ -151,7 +154,7 @@ std::map<std::string, double> LCModel_KK::on_ramp_cal() {
     if (this->left_lane != nullptr) {
         Vehicle* _f;
         Vehicle* _l;
-        std::tie(_f, _l) = this->left_lane->get_relative_car(this->vehicle);
+        std::tie(_f, _l) = this->left_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         double left_d_l, v_hat, x;
         std::tie(safe_, left_d_l, v_hat, x) = this->safe_check_on_ramp(_f, _l);

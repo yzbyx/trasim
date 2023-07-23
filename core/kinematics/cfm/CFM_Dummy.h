@@ -6,8 +6,9 @@
 #define TRASIM_CFM_DUMMY_H
 
 #include "CFModel.h"
-#include "../../Vehicle.h"
 #include <iostream>
+
+class Vehicle;
 
 class CFM_Dummy : public CFModel {
 public:

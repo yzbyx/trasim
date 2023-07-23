@@ -65,6 +65,8 @@ public:
     DataProcessor* data_processor{};
 
     explicit LaneAbstract(float lane_length = 1000, float speed_limit = 30);
+    ~LaneAbstract();
+
     int get_new_car_id();
     void set_section_type(SECTION_TYPE type_, double start_pos = -1, double end_pos = -1,
                           std::vector<VType> car_types = {});

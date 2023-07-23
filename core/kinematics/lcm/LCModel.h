@@ -6,7 +6,8 @@
 #define TRASIM_LCMODEL_H
 
 #include "../Model.h"
-#include "LCModel_KK.h"
+#include "../../Constants.h"
+
 
 class LCModel : public Model{
 public:

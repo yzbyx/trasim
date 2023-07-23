@@ -3,7 +3,6 @@
 
 int main() {
     Obstacle obstacle(VType::OBSTACLE);
-    std::printf("%s", reinterpret_cast<const char *>(obstacle.color));
-    // 使用obstacle对象进行操作
+    std::cout << obstacle.x;
     return 0;
 }
