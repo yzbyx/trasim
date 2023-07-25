@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <random>
+#include <map>
 
 namespace RANDOM {
     static std::uniform_real_distribution<double> DIS12(0, 1);
@@ -89,6 +90,28 @@ const std::vector<C_Info> ALL_C_INFO = {
     C_Info::safe_picud_KK
 };
 
+const std::map<C_Info, std::string> ALL_C_INFO_2_STRING = {
+        {C_Info::lane_add_num , "lane_add_num"},
+        {C_Info::id, "v_id"},
+        {C_Info::step, "step"},
+        {C_Info::time, "time"},
+        {C_Info::a, "a"},
+        {C_Info::v, "v"},
+        {C_Info::x, "x"},
+        {C_Info::dhw, "dhw"},
+        {C_Info::thw, "thw"},
+        {C_Info::gap, "gap"},
+        {C_Info::dv, "dv"},
+        {C_Info::cf_id, "cf_id"},
+        {C_Info::lc_id, "lc_id"},
+        {C_Info::car_type, "car_type"},
+        {C_Info::safe_ttc, "ttc"},
+        {C_Info::safe_tet, "tet"},
+        {C_Info::safe_tit, "tit"},
+        {C_Info::safe_picud, "picud"},
+        {C_Info::safe_picud_KK, "picud_KK"}
+};
+
 enum class Color {
     BLUE = 0x0000FF,
     GREEN = 0x00FF00,
@@ -160,5 +183,10 @@ enum class UpdateMethod {
     Euler,
     Ballistic,
     Trapezoidal
+};
+
+enum class THW_DISTRIBUTION {
+    Uniform,
+    Exponential,
 };
 #endif //TRASIM_CONSTANTS_H

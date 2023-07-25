@@ -14,6 +14,19 @@
 
 class LaneAbstract;
 
+struct VehicleData {
+    VType car_type;
+    double car_length;
+    double car_pos;
+    double car_speed;
+    double car_acc;
+    CFM cf_name;
+    std::map<std::string, double> &cf_param;
+    LCM lc_name;
+    std::map<std::string, double> &lc_param;
+    std::map<std::string, double> &car_param;
+};
+
 class Vehicle : public Obstacle {
 public:
     explicit Vehicle(LaneAbstract *lane_, VType type_, int id_, double length_);
@@ -67,7 +80,7 @@ public:
 
     [[nodiscard]] bool is_first() const;
 
-    std::map<C_Info, std::vector<double>> get_data_list(C_Info info);
+    std::vector<double> get_data_list(C_Info info);
 
     void record();
 

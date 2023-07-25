@@ -69,56 +69,52 @@ bool Vehicle::is_first() const {
     return leader == nullptr || leader->type == VType::OBSTACLE;
 }
 
-std::map<C_Info, std::vector<double>> Vehicle::get_data_list(C_Info info) {
-    std::map<C_Info, std::vector<double>> result;
-
+std::vector<double> Vehicle::get_data_list(C_Info info) {
     if (info == C_Info::lane_add_num) {
-        result[info] = lane_id_list;
+        return lane_id_list;
     } else if (info == C_Info::id) {
         std::vector<double> id_list(pos_list.size(), ID);
-        result[info] = id_list;
+        return id_list;
     } else if (info == C_Info::car_type) {
         std::vector<double> type_list(pos_list.size(), static_cast<int>(type));
-        result[info] = type_list;
+        return type_list;
     } else if (info == C_Info::a) {
-        result[info] = acc_list;
+        return acc_list;
     } else if (info == C_Info::v) {
-        result[info] = speed_list;
+        return speed_list;
     } else if (info == C_Info::x) {
-        result[info] = pos_list;
+        return pos_list;
     } else if (info == C_Info::dv) {
-        result[info] = dv_list;
+        return dv_list;
     } else if (info == C_Info::gap) {
-        result[info] = gap_list;
+        return gap_list;
     } else if (info == C_Info::dhw) {
-        result[info] = dhw_list;
+        return dhw_list;
     } else if (info == C_Info::thw) {
-        result[info] = thw_list;
+        return thw_list;
     } else if (info == C_Info::time) {
-        result[info] = time_list;
+        return time_list;
     } else if (info == C_Info::step) {
-        result[info] = step_list;
+        return step_list;
     } else if (info == C_Info::cf_id) {
         std::vector<double> cf_id_list(pos_list.size(), static_cast<int>(cf_model->name));
-        result[info] = cf_id_list;
+        return cf_id_list;
     } else if (info == C_Info::lc_id) {
         std::vector<double> lc_id_list(pos_list.size(), static_cast<int>(lc_model->name));
-        result[info] = lc_id_list;
+        return lc_id_list;
     } else if (info == C_Info::safe_ttc) {
-        result[info] = ttc_list;
+        return ttc_list;
     } else if (info == C_Info::safe_tit) {
-        result[info] = tit_list;
+        return tit_list;
     } else if (info == C_Info::safe_tet) {
-        result[info] = tet_list;
+        return tet_list;
     } else if (info == C_Info::safe_picud) {
-        result[info] = picud_list;
+        return picud_list;
     } else if (info == C_Info::safe_picud_KK) {
-        result[info] = picud_KK_list;
+        return picud_KK_list;
     } else {
-        throw std::runtime_error("C_Info未创建！");
+        throw std::runtime_error("Vehicle::get_data_list: " + std::to_string(static_cast<double>(info)) + "未创建！");
     }
-
-    return result;
 }
 
 void Vehicle::record() {
@@ -126,6 +122,14 @@ void Vehicle::record() {
         switch (info) {
             case C_Info::lane_add_num:
                 lane_id_list.push_back(lane->add_num);
+                break;
+            case C_Info::id:
+                break;  // 后续统一添加
+            case C_Info::cf_id:
+                break;
+            case C_Info::lc_id:
+                break;
+            case C_Info::car_type:
                 break;
             case C_Info::a:
                 acc_list.push_back(a);
@@ -171,7 +175,7 @@ void Vehicle::record() {
                 picud_KK_list.push_back(picud_KK());
                 break;
             default:
-                throw std::runtime_error("C_Info未创建！");
+                throw std::runtime_error("Vehicle::record: " + std::to_string(static_cast<double>(info)) + "未创建！");
         }
     }
 }

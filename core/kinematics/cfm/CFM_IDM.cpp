@@ -67,7 +67,7 @@ void CFM_IDM::_update_dynamic() {
 
 // 计算下一时间步的加速度
 std::map<std::string, double> CFM_IDM::step(int index, ...) {
-    if (vehicle->leader->v < 0) {
+    if (vehicle->leader == nullptr) {
         return {{"a", get_expect_acc()}};
     }
     _update_dynamic();

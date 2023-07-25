@@ -7,13 +7,7 @@
 
 void Model::param_update(const std::map<std::string, double>& param) {
     for (const auto& pair : param) {
-        std::string key = pair.first;
-        std::string inner_name = "_" + key;
-        if (this->has_member(inner_name)) {
-            this->set_member(inner_name, pair.second);
-        } else {
-            std::cout << "模型无参数" << key << "!" << std::endl;
-        }
+        this->param_map[pair.first] = pair.second;
     }
 }
 

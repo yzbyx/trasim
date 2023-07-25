@@ -5,10 +5,11 @@
 #include <algorithm>
 #include <random>
 #include "LaneAbstract.h"
+#include "Road.h"
 
 
-LaneAbstract::LaneAbstract(float lane_length_, float speed_limit_) {
-    ID = 0;
+LaneAbstract::LaneAbstract(double lane_length_, double speed_limit_) {
+    ID = "0-0";
     index = 0;
     add_num = 0;
     default_speed_limit = speed_limit_;
@@ -18,7 +19,6 @@ LaneAbstract::LaneAbstract(float lane_length_, float speed_limit_) {
     id_accumulate = 0;
     step_ = 0;
     time_ = 0;
-    yield_ = true;
     road_control = false;
     force_speed_limit = false;
     state_update_method = UpdateMethod::Euler;
@@ -26,6 +26,8 @@ LaneAbstract::LaneAbstract(float lane_length_, float speed_limit_) {
     warm_up_step = static_cast<int>(5 * 60 / dt);
     sim_step = static_cast<int>(10 * 60 / dt);
     data_save = false;
+
+    data_container = new DataContainer();
 }
 
 int LaneAbstract::get_new_car_id() {
@@ -121,7 +123,7 @@ int LaneAbstract::car_num() const {
     return static_cast<int>(car_list.size());
 }
 
-void LaneAbstract::car_config(float car_num, float car_length, VType car_type, float car_initial_speed,
+void LaneAbstract::car_config(double car_num, double car_length, VType car_type, double car_initial_speed,
                               bool speed_with_random,
                               CFM cf_name,
                               const std::map<std::string, double>& cf_param_,
@@ -241,23 +243,25 @@ void LaneAbstract::run_config(
         int warm_up_step_,
         double dt_,
         int sim_step_,
-        bool yield,
         bool force_speed_limit_
         ) {
     this->data_save = data_save_;
     this->warm_up_step = warm_up_step_;
     this->dt = dt_;
     this->sim_step = sim_step_;
-    this->yield_ = yield;
     this->force_speed_limit = force_speed_limit_;
     this->state_update_method = update_method_;
+
+    run_first_part();
 }
 
 void LaneAbstract::run() {
     // 整个仿真能够运行sim_step的仿真步
     if (!road_control) {
         while (this->sim_step != this->step_) {
-            run_first_part();
+            if (step_ != 0) {
+                run_first_part();
+            }
             run_second_part();
             run_third_part();
         }
@@ -355,7 +359,7 @@ Vehicle * LaneAbstract::make_dummy_car(double pos) {
 
 void LaneAbstract::set_block(double pos) {
     Vehicle * dummy_car = make_dummy_car(pos);
-    this->car_insert_by_instance(dummy_car);
+    this->car_insert_by_instance(dummy_car, true);
 }
 
 int LaneAbstract::get_appropriate_car() const {
@@ -384,11 +388,9 @@ void LaneAbstract::take_over(int car_id, double acc_values) {
     }
 }
 
-int LaneAbstract::car_insert(double car_length, VType car_type, double car_pos, double car_speed, double car_acc,
-                             CFM cf_name, const std::map<std::string, double>& cf_param, const std::map<std::string, double>& car_param,
-                             LCM lc_name, const std::map<std::string, double>& lc_param) {
-    Vehicle* car = make_car(car_length, car_type, car_pos, car_speed, car_acc, cf_name, cf_param, car_param, lc_name, lc_param);
-    this->car_insert_by_instance(car);
+int LaneAbstract::car_insert(VehicleData & data) {
+    Vehicle* car = make_car(data);
+    this->car_insert_by_instance(car, false);
     return car->ID;
 }
 
@@ -408,16 +410,14 @@ void LaneAbstract::car_remove(Vehicle* car, bool put_out_car_has_data) {
     }
 }
 
-Vehicle* LaneAbstract::make_car(double car_length, VType car_type, double car_pos, double car_speed, double car_acc,
-                                CFM cf_name, const std::map<std::string, double>& cf_param, const std::map<std::string, double>& car_param,
-                                LCM lc_name, const std::map<std::string, double>& lc_param) {
-    auto* car = new Vehicle{this, car_type, this->get_new_car_id(), car_length};
-    car->set_cf_model(cf_name, cf_param);
-    car->set_lc_model(lc_name, lc_param); // Use an empty string if lc_name is not provided
-    car->set_car_param(const_cast<std::map<std::string, double> &>(car_param));
-    car->x = car_pos;
-    car->v = car_speed;
-    car->a = car_acc;
+Vehicle * LaneAbstract::make_car(VehicleData & data) {
+    auto* car = new Vehicle{this, data.car_type, this->get_new_car_id(), data.car_length};
+    car->set_cf_model(data.cf_name, data.cf_param);
+    car->set_lc_model(data.lc_name, data.lc_param);
+    car->set_car_param(const_cast<std::map<std::string, double> &>(data.car_param));
+    car->x = data.car_pos;
+    car->v = data.car_speed;
+    car->a = data.car_acc;
     return car;
 }
 
@@ -459,13 +459,8 @@ bool LaneAbstract::car_insert_by_instance(Vehicle * car, bool is_dummy) {
             this->car_list.front()->follower = car;
         }
 
-        if (!is_dummy) {
-            this->car_list.insert(this->car_list.begin() + index_, car);
-        }
+        this->car_list.insert(this->car_list.begin() + index_, car);
     } else {
-        if (is_dummy) {
-            throw std::runtime_error("请在初始化正常车辆后设置dummy类型的车辆！");
-        }
         this->car_list.push_back(car);
         if (this->is_circle) {
             car->leader = car;
@@ -493,10 +488,10 @@ double LaneAbstract::get_car_info(int id_, C_Info info_name) const {
             if (info_name == C_Info::dhw) {
                 return car->dhw();
             }
-            throw std::runtime_error("C_Info未创建！");
+            throw std::runtime_error("LaneAbstract::get_car_info: C_Info未创建！");
         }
     }
-    throw std::runtime_error(std::string("未找到！"));
+    return NAN;
 }
 
 Vehicle* LaneAbstract::get_car(int id_) {
@@ -508,24 +503,20 @@ Vehicle* LaneAbstract::get_car(int id_) {
     return nullptr;
 }
 
-int LaneAbstract::car_insert_middle(double car_length, VType car_type, double car_speed, double car_acc,
-                                    CFM cf_name, std::map<std::string, double>& cf_param,
-                                    std::map<std::string, double>& car_param,
-                                    int front_car_id,
-                                    LCM lc_name, const std::map<std::string, double>& lc_param) {
+int LaneAbstract::car_insert_middle(int front_car_id, VehicleData & data) {
     int follower_id = get_relative_id(front_car_id, -1);
     double follower_pos = get_car_info(follower_id, C_Info::x);
     double follower_dhw = get_car_info(follower_id, C_Info::dhw);
     double front_length = get_car(front_car_id)->length;
 
-    if (follower_dhw / 2 < car_length || follower_dhw / 2 < front_length) {
+    if (follower_dhw / 2 < data.car_length || follower_dhw / 2 < front_length) {
         std::cout << "空间不足，插入失败！" << std::endl;
         return -1;
     }
 
-    double pos = follower_pos + follower_dhw / 2;
-    Vehicle* car = make_car(car_length, car_type, pos, car_speed, car_acc, cf_name, cf_param, car_param, lc_name, lc_param);
-    car_insert_by_instance(car);
+    data.car_pos = follower_pos + follower_dhw / 2;
+    Vehicle* car = make_car(data);
+    car_insert_by_instance(car, false);
     return car->ID;
 }
 
@@ -593,4 +584,38 @@ LaneAbstract::~LaneAbstract() {
     for (auto* car : dummy_car_list) {
         delete car;
     }
+    delete data_container;
+}
+
+void LaneAbstract::car_summon() {
+
+}
+
+void LaneAbstract::car_loader(double flow_rate_, THW_DISTRIBUTION thw_distribution_, double offset_time, double offset_pos_) {
+
+}
+
+bool LaneAbstract::LaneIterator::operator!=(const LaneAbstract::LaneIterator &other) const {
+    return ptr->step_ != other.ptr->sim_step;
+}
+
+LaneAbstract::LaneIterator &LaneAbstract::LaneIterator::operator++() {
+    if (stage == 1) {
+        ptr->run_second_part();
+        stage = 2;
+    } else {
+        ptr->run_third_part();
+        ptr->run_first_part();
+        stage = 1;
+    }
+    return *this;
+}
+
+int &LaneAbstract::LaneIterator::operator*() {
+    return ptr->step_;
+}
+
+LaneAbstract::LaneIterator::LaneIterator(LaneAbstract *p) {
+    ptr = p;
+    stage = 1;
 }

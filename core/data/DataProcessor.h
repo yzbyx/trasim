@@ -8,6 +8,8 @@
 
 class DataProcessor {
 
+public:
+    DataProcessor();
 };
 
 
