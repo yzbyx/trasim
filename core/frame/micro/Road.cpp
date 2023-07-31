@@ -10,6 +10,7 @@
 #include <limits>
 #include <string>
 #include <algorithm>
+#include <numeric>
 
 Road::Road(double length_, int id){
     lane_length = length_;
@@ -21,6 +22,9 @@ Road::Road(double length_, int id){
     ID = id;
     road_total_data = {};
     data_processor = new DataProcessor();
+    ui = new UI(this);
+    has_ui = false;
+    frame_rate = -1;
 }
 
 std::vector<LaneAbstract*> Road::add_lanes(int lane_num, bool is_circle, const std::vector<int>& real_index) {
@@ -29,7 +33,7 @@ std::vector<LaneAbstract*> Road::add_lanes(int lane_num, bool is_circle, const s
     std::iota(lane_indices.begin(), lane_indices.end(), 0);
     std::vector<int> real_index_copy = (real_index.empty()) ? lane_indices : real_index;
     if (!real_index.empty() && lane_indices.size() != real_index.size()) {
-        throw std::runtime_error("real_index长度错误！");
+        throw std::runtime_error("real_index's length error!");
     }
 
     for (int i = 0; i < lane_num; ++i) {
@@ -64,9 +68,15 @@ std::vector<LaneAbstract*> Road::add_lanes(int lane_num, bool is_circle, const s
 }
 
 
-void Road::run_config(bool data_save, bool has_ui, double dt_, int sim_step_, int frame_rate, int warm_up_step) {
+void Road::run_config(bool data_save, bool has_ui_, double dt_, int sim_step_, int frame_rate_, int warm_up_step) {
     this->dt = dt_;
     this->sim_step = sim_step_;
+    has_ui = has_ui_;
+    frame_rate = frame_rate_;
+
+    if (has_ui) {
+        ui->ui_init("Microscopic Traffic Flow Simulation", frame_rate_);
+    }
 
     for (auto lane : this->lane_list) {
         lane->run_config(data_save, UpdateMethod::Euler,
@@ -76,20 +86,8 @@ void Road::run_config(bool data_save, bool has_ui, double dt_, int sim_step_, in
     }
 }
 
-void Road::run(bool data_save, bool has_ui, double dt_, int sim_step_, int frame_rate, int warm_up_step) {
-    this->dt = dt_;
-    this->sim_step = sim_step_;
-
-    if (has_ui) {
-
-    }
-
-    for (auto lane : this->lane_list) {
-        lane->run_config(data_save, UpdateMethod::Euler,
-                         warm_up_step, dt_, sim_step_, false);
-        auto lane_it = lane->begin();
-        lanes_iter.push_back(lane_it);
-    }
+void Road::run(bool data_save, bool has_ui_, double dt_, int sim_step_, int frame_rate_, int warm_up_step) {
+    run_config(data_save, has_ui_, dt_, sim_step_, frame_rate_, warm_up_step);
 
     time_t timeIn = time(nullptr);
     std::string timeStart = get_current_time();
@@ -114,25 +112,51 @@ void Road::run_first_part() {
     for (auto& lane_it : lanes_iter) {
         ++lane_it;
     }
-    this->step_lane_change();
 }
 
 void Road::run_second_part() {
+    this->step_lane_change();
     this->update_lc_state(); // 换道状态更新
     this->step_ += 1;
     this->time_ += this->dt;
-//    if (this->has_ui) { this->ui.ui_update(); }
+    if (this->has_ui) { this->ui->ui_update(); }
 }
 
 void Road::step_lane_change() {
     for (auto lane : this->lane_list) {
         for (int i = 0; i < lane->car_list.size(); ++i) {
-            if (lane->car_list[i]->type != VType::OBSTACLE) {
-                if (lane->car_list[i]->lc_model != nullptr) {
+            for (auto car : lane->car_list) {
+                if (car->type != VType::OBSTACLE && car->lc_model != nullptr && !car->is_lc_take_over) {
                     LaneAbstract* left, *right;
-                    std::tie(left, right) = Road::get_available_adjacent_lane(lane, lane->car_list[i]->x, lane->car_list[i]->type);
-                    lane->car_list[i]->step_lane_change(i, left, right);
+                    std::tie(left, right) = Road::get_available_adjacent_lane(lane, car->x, car->type);
+                    car->step_lane_change(i, left, right);
                 }
+            }
+        }
+//        Road::update_lc_state(lane);
+    }
+}
+
+void Road::update_lc_state(LaneAbstract *lane) {
+    Vehicle* car_lc_last = nullptr;  // 该车道最近一次换道的车辆
+    std::vector<Vehicle*> car_list = lane->car_list;
+    std::reverse(car_list.begin(), car_list.end());
+    for (auto car : car_list) {
+        if (car->type != VType::OBSTACLE) {
+            int lc = static_cast<int>(std::round(car->lc_result["lc"]));
+            if (lc != 0) {
+                LaneAbstract* target_lane = car->lc_target_lane;
+                if (Road::check_and_correct_lc_pos(target_lane, car_lc_last, car)) {
+                    lane->car_remove(car, false, true);
+                    car->x = car->lc_result["x"];
+                    car->v = car->lc_result["v"];
+                    car->a = car->lc_result["a"];
+                    target_lane->car_insert_by_instance(car, false);
+                    car_lc_last = car;
+                }
+                car->lc_result.clear();
+                car->lc_target_lane = nullptr;
+                car->is_lc_take_over = false;
             }
         }
     }
@@ -140,26 +164,7 @@ void Road::step_lane_change() {
 
 void Road::update_lc_state() {
     for (auto lane : this->lane_list) {
-        Vehicle* car_lc_last = nullptr;
-        std::vector<Vehicle*> car_list = lane->car_list;
-        std::reverse(car_list.begin(), car_list.end());
-        for (auto car : car_list) {
-            if (car->type != VType::OBSTACLE) {
-                int lc = static_cast<int>(std::round(car->lc_result["lc"]));
-                if (lc != 0) {
-                    LaneAbstract* target_lane = this->lane_list[car->lane->index + lc];
-                    if (Road::check_and_correct_lc_pos(target_lane, car_lc_last, car)) {
-                        lane->car_remove(car, false);
-                        car->x = car->lc_result["x"];
-                        car->v = car->lc_result["v"];
-                        car->a = car->lc_result["a"];
-                        target_lane->car_insert_by_instance(car, false);
-                        car_lc_last = car;
-                    }
-                    car->lc_result.clear();
-                }
-            }
-        }
+        Road::update_lc_state(lane);
     }
 }
 
@@ -175,6 +180,7 @@ bool Road::check_and_correct_lc_pos(LaneAbstract* target_lane, Vehicle* car_lc_l
     if (dist > car->length || dist < -car_lc_last->length) {
         return true;
     }
+    
     return false;
 }
 
@@ -210,7 +216,7 @@ std::pair<LaneAbstract*, LaneAbstract*> Road::get_available_adjacent_lane(LaneAb
     }
 
     if (!(lefts.size() == 1 && rights.size() == 1)) {
-        throw std::runtime_error("有重叠车道！");
+        throw std::runtime_error("There are overlapping lanes!");
     }
     return {lefts[0], rights[0]};
 }
@@ -229,19 +235,32 @@ double Road::get_car_info(int car_id, C_Info info, int lane_add_num) {
             return result;
         }
     }
-    std::cout << "未找到车辆！" << std::endl;
+    std::cout << "Vehicle not found!" << std::endl;
+    return NAN;
 }
 
 int Road::car_insert_middle(int lane_add_num, int front_car_id, VehicleData & data) {
     return lane_list[lane_add_num]->car_insert_middle(front_car_id, data);
 }
 
-void Road::take_over(int car_id, double acc_values, const std::map<std::string, double>& lc_result) {
+void Road::cf_take_over(int car_id, double acc_values) {
     for (auto lane : this->lane_list) {
         for (auto car : lane->car_list) {
             if (car->ID == car_id) {
                 car->cf_acc = acc_values;
+                car->is_cf_take_over = true;
+                break;
+            }
+        }
+    }
+}
+
+void Road::lc_take_over(int car_id, const std::map<std::string, double>& lc_result) {
+    for (auto lane : this->lane_list) {
+        for (auto car : lane->car_list) {
+            if (car->ID == car_id) {
                 car->lc_result = lc_result;
+                car->is_lc_take_over = true;
                 break;
             }
         }
@@ -259,6 +278,8 @@ int Road::get_appropriate_car(int lane_add_num) {
 
 std::vector<int> Road::find_on_lanes(int car_id) {
 //    data_to_df();
+
+    return {-1};
 }
 
 Road::~Road() {
@@ -266,6 +287,7 @@ Road::~Road() {
         delete lane;
     }
     delete data_processor;
+    delete ui;
 }
 
 std::map<C_Info, std::vector<double>> & Road::get_road_total_data() {
@@ -280,6 +302,14 @@ std::map<C_Info, std::vector<double>> & Road::get_road_total_data() {
         }
     }
     return road_total_data;
+}
+
+int Road::get_car_num_on_road() {
+    int num = 0;
+    for (auto lane : lane_list) {
+        num += lane->car_num();
+    }
+    return num;
 }
 
 std::pair<int, int> Road::RoadIterator::operator*() {

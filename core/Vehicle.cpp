@@ -8,6 +8,7 @@
 
 Vehicle::Vehicle(LaneAbstract *lane_, VType type_, int id_, double length_) : Obstacle(type_) {
     ID = id_;
+    width = 2;
 
     length = length_;
     lane = lane_;
@@ -19,11 +20,15 @@ Vehicle::Vehicle(LaneAbstract *lane_, VType type_, int id_, double length_) : Ob
 
     cf_acc = 0;
 
-    lc_result = {{"lc", 0}, {"a", 0}, {"v", 0}, {"x", 0}};
+    lc_result = {{"lc", 0}, {"a", 0}, {"v", 0}, {"x", 0}, {"back_dis", -1}, {"front_dis", -1}};
     lc_res_pre = lc_result;
+    lc_target_lane = nullptr;
 
     ttc_star = 1.3;
     is_run_out = false;
+    
+    is_cf_take_over = false;
+    is_lc_take_over = false;
 }
 
 double Vehicle::last_step_lc_status() {
@@ -44,6 +49,11 @@ void Vehicle::step(int index) {
 
 void Vehicle::step_lane_change(int index, LaneAbstract *left_lane, LaneAbstract *right_lane) {
     lc_result = lc_model->step(index, left_lane, right_lane);
+    if (lc_result["lc"] == -1) {
+        lc_target_lane = left_lane;
+    } else if (lc_result["lc"] == 1) {
+        lc_target_lane = right_lane;
+    }
     lc_res_pre = lc_result;
 }
 
@@ -113,7 +123,7 @@ std::vector<double> Vehicle::get_data_list(C_Info info) {
     } else if (info == C_Info::safe_picud_KK) {
         return picud_KK_list;
     } else {
-        throw std::runtime_error("Vehicle::get_data_list: " + std::to_string(static_cast<double>(info)) + "未创建！");
+        throw std::runtime_error("Vehicle::get_data_list: " + std::to_string(static_cast<double>(info)) + " not created!");
     }
 }
 
@@ -175,7 +185,7 @@ void Vehicle::record() {
                 picud_KK_list.push_back(picud_KK());
                 break;
             default:
-                throw std::runtime_error("Vehicle::record: " + std::to_string(static_cast<double>(info)) + "未创建！");
+                throw std::runtime_error("Vehicle::record: " + std::to_string(static_cast<double>(info)) + " not created!");
         }
     }
 }
@@ -205,7 +215,7 @@ double Vehicle::dhw() {
             if (lane->is_circle && lane->car_list.back()->ID == ID) {
                 dhw += lane->lane_length;
             } else {
-                throw std::runtime_error("车头间距小于0！\n");
+                throw std::runtime_error("dhw is less than 0!");
             }
         }
         return dhw;
@@ -290,6 +300,10 @@ bool Vehicle::has_data() const {
 }
 
 void Vehicle::set_car_param(std::map<std::string, double> & param) {
-    color = static_cast<Color>(param["color"]);
-    width = param["width"];
+    if (param.count("color") > 0) {
+        color = static_cast<Color>(param["color"]);
+    }
+    if (param.count("width") > 0) {
+        width = param["width"];
+    }
 }

@@ -6,6 +6,8 @@
 #include <random>
 #include "LaneAbstract.h"
 #include "Road.h"
+#include <array>
+#include <numeric>
 
 
 LaneAbstract::LaneAbstract(double lane_length_, double speed_limit_) {
@@ -27,7 +29,7 @@ LaneAbstract::LaneAbstract(double lane_length_, double speed_limit_) {
     sim_step = static_cast<int>(10 * 60 / dt);
     data_save = false;
 
-    data_container = new DataContainer();
+    data_container = new DataContainer(this);
 }
 
 int LaneAbstract::get_new_car_id() {
@@ -38,6 +40,8 @@ int LaneAbstract::get_new_car_id() {
         return road->get_new_car_id();
     }
 }
+
+/***/
 
 void LaneAbstract::set_section_type(SECTION_TYPE type_, double start_pos, double end_pos,
                                     std::vector<VType> car_types) {
@@ -152,7 +156,7 @@ std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
                                                 this->car_length_list.begin(), 0.);
     double gap = (this->lane_length - car_length_total) / car_num_total_;
     if (gap < 0) {
-        throw std::runtime_error("该密度下，车辆重叠！");
+        throw std::runtime_error("At this density, vehicles overlap!");
     }
 
     double x = 0;
@@ -266,7 +270,7 @@ void LaneAbstract::run() {
             run_third_part();
         }
     } else {
-        throw std::runtime_error("road控制请将road_control设置为true！");
+        throw std::runtime_error("Please set 'road_control' to true!");
     }
 }
 
@@ -310,7 +314,7 @@ void LaneAbstract::car_state_update_common(Vehicle* car) {
     } else if (this->state_update_method == UpdateMethod::Trapezoidal) {
         car->v += (car->cf_acc + car->a) * this->dt / 2;
     } else {
-        throw std::runtime_error("更新方式未实现！");
+        throw std::runtime_error("Update method not implemented!");
     }
 
     if (this->force_speed_limit && car->v > this->get_speed_limit(car->x, car->type)) {
@@ -324,7 +328,9 @@ void LaneAbstract::car_state_update_common(Vehicle* car) {
         car->a = (expect_speed - car_speed_before) / this->dt;
         car->v = expect_speed;
     } else if (car->v < 0) {
-        throw std::runtime_error("车辆速度出现负数！");
+//        throw std::runtime_error("车辆速度出现负数！");
+        car->a = - (car_speed_before / dt);
+        car->v = 0;
     } else {
         car->a = car->cf_acc;
     }
@@ -336,7 +342,11 @@ void LaneAbstract::car_state_update_common(Vehicle* car) {
     } else if (this->state_update_method == UpdateMethod::Trapezoidal) {
         car->x += car_speed_before * this->dt + car->a * std::pow(this->dt, 2) / 2;
     } else {
-        throw std::runtime_error("更新方式未实现！");
+        throw std::runtime_error("Update method not implemented!");
+    }
+
+    if (car->is_cf_take_over) {
+        car->is_cf_take_over = false;
     }
 }
 
@@ -394,7 +404,7 @@ int LaneAbstract::car_insert(VehicleData & data) {
     return car->ID;
 }
 
-void LaneAbstract::car_remove(Vehicle* car, bool put_out_car_has_data) {
+void LaneAbstract::car_remove(Vehicle *car, bool put_out_car_has_data, bool is_lc) {
     this->car_list.erase(std::remove(this->car_list.begin(), this->car_list.end(), car), this->car_list.end());
     if (car->leader != nullptr) {
         car->leader->follower = car->follower;
@@ -406,7 +416,9 @@ void LaneAbstract::car_remove(Vehicle* car, bool put_out_car_has_data) {
     if (put_out_car_has_data) {
         this->out_car_has_data.push_back(car);
     } else {
-        delete car;
+        if (!is_lc) {
+            delete car;
+        }
     }
 }
 
@@ -488,7 +500,7 @@ double LaneAbstract::get_car_info(int id_, C_Info info_name) const {
             if (info_name == C_Info::dhw) {
                 return car->dhw();
             }
-            throw std::runtime_error("LaneAbstract::get_car_info: C_Info未创建！");
+            throw std::runtime_error("LaneAbstract::get_car_info: C_Info Not created!");
         }
     }
     return NAN;
@@ -510,7 +522,7 @@ int LaneAbstract::car_insert_middle(int front_car_id, VehicleData & data) {
     double front_length = get_car(front_car_id)->length;
 
     if (follower_dhw / 2 < data.car_length || follower_dhw / 2 < front_length) {
-        std::cout << "空间不足，插入失败！" << std::endl;
+        std::cout << "Insufficient space, insertion failed!" << std::endl;
         return -1;
     }
 

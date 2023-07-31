@@ -116,7 +116,7 @@ public:
 
     std::pair<Vehicle *, Vehicle *> get_relative_car(double pos);
 
-    void car_remove(Vehicle *car, bool put_out_car_has_data);
+    void car_remove(Vehicle *car, bool put_out_car_has_data, bool is_lc);
 
     bool car_insert_by_instance(Vehicle *car, bool is_dummy);
 

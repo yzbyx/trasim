@@ -5,6 +5,7 @@
 #include "LaneOpen.h"
 #include <iostream>
 #include <algorithm>
+#include <numeric>
 
 LaneOpen::LaneOpen(double lane_length_, double speed_limit_) : LaneAbstract(lane_length_, speed_limit_) {
     this->is_circle = false;
@@ -34,6 +35,9 @@ void LaneOpen::car_loader(double flow_rate_, THW_DISTRIBUTION thw_distribution_,
 
 void LaneOpen::step() {
     for (int i = 0; i < this->car_list.size(); ++i) {
+        if (car_list[i]->is_cf_take_over) {
+            continue;
+        }
         this->car_list[i]->step(i);
     }
 }
@@ -43,16 +47,16 @@ void LaneOpen::car_summon() {
         return;
     }
 
-    if (this->next_car_time <= this->time_) {
+    if (this->next_car_time <= this->time_ && flow_rate > 0) {
         if (car_num_percent.empty()) {
-            throw std::runtime_error("未配置车辆，无法生成！");
+            throw std::runtime_error("Vehicle not configured, unable to generate!");
         }
         if (!this->car_list.empty()) {
             Vehicle* first = this->car_list[0];
             if (first->x - first->length < 0) {
                 this->fail_summon_num++;
-                std::cout << "车道" << this->ID << "在" << this->step_ << "仿真步生成车辆失败！共延迟"
-                          << this->fail_summon_num << "个仿真步" << std::endl;
+//                std::cout << "Lane ID " << this->ID << " at step " << this->step_ << " summon car failed! "
+//                          << this->fail_summon_num << " steps delayed" << std::endl;
                 return;
             }
         }
@@ -69,7 +73,7 @@ void LaneOpen::car_summon() {
         }
 
         if (pos == -1) {
-            std::cout << "车道" << this->ID << "在" << this->step_ << "仿真步生成车辆失败！" << std::endl;
+            std::cout << "Lane ID " << this->ID << " at step " << this->step_ << " summon car failed!" << std::endl;
             return;
         }
 
@@ -126,7 +130,7 @@ void LaneOpen::update_state() {
 
         if (i->x > this->lane_length) {
             i->is_run_out = true;
-            this->car_remove(i, i->has_data());
+            this->car_remove(i, i->has_data(), false);
         }
     }
 }

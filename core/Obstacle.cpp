@@ -14,4 +14,10 @@ Obstacle::Obstacle(VType type_) {
     length = 5.0;
     width = 1.8;
     type = type_;
+
+    car_shape = nullptr;
+}
+
+Obstacle::~Obstacle() {
+    delete car_shape;
 }

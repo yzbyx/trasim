@@ -7,23 +7,38 @@
 #include "../../frame/micro/LaneAbstract.h"
 #include "../cfm/CFModel.h"
 
+const std::map<std::string, double> LCModel_KK::default_f_param = {
+        {"delta_2", 5},
+        {"gamma_ahead", 1},
+        {"gamma_behind", 0.5},
+        {"k", 3.5},
+        {"tau", 1},
+        {"L_a", 150},
+        {"p_0", 0.45},
+        {"lambda_b", 0.75},
+        {"delta_vr_1", 10.}
+};
 
-LCModel_KK::LCModel_KK(Vehicle* vehicle, const std::map<std::string, double>& l_param)
+LCModel_KK::LCModel_KK(Vehicle* vehicle, const std::map<std::string, double>& l_param_)
         : LCModel(vehicle) {
     this->name = LCM::KK;
     this->thesis = "Physics of Automated-Driving Vehicular Traffic";
 
+    param_update(default_f_param);
+    param_update(l_param_);
     this->_a_0 = vehicle->cf_model->get_expect_acc();
-    this->_delta_1 = l_param.at("delta_1");
-    this->_delta_2 = l_param.at("delta_2");
-    this->_gamma_ahead = l_param.at("gamma_ahead");
-    this->_gamma_behind = l_param.at("gamma_behind");
-    this->_k = l_param.at("k");
-    this->_tau = l_param.at("tau");
-    this->L_a_ = l_param.at("L_a");
-    this->_p_0 = l_param.at("p_0");
-    this->_lambda_b = l_param.at("lambda_b");
-    this->_delta_vr_1 = l_param.at("delta_vr_1");
+    param_map["delta_1"] = 2 * _a_0 * vehicle->lane->dt;
+    this->_delta_1 = param_map["delta_1"];
+    this->_delta_2 = param_map["delta_2"];
+    this->_gamma_ahead = param_map["gamma_ahead"];
+    this->_gamma_behind = param_map["gamma_behind"];
+    this->_k = param_map["k"];
+    this->_tau = param_map["tau"];
+    this->L_a_ = param_map["L_a"];
+    this->_p_0 = param_map["p_0"];
+    this->_lambda_b = param_map["lambda_b"];
+    this->_delta_vr_1 = param_map["delta_vr_1"];
+
     this->xm = NAN;
 
     this->left_lane = nullptr;
@@ -31,8 +46,8 @@ LCModel_KK::LCModel_KK(Vehicle* vehicle, const std::map<std::string, double>& l_
 }
 
 void LCModel_KK::_update_dynamic() {
-    if (!this->vehicle->lane->is_circle) {
-        throw std::runtime_error("此换道模型在边界处由于xm");
+    if (this->vehicle->lane->is_circle) {
+        throw std::runtime_error("This lane change model may have errors on the circular boundary(due to 'xm').");
     }
     this->lane = this->vehicle->lane;
     this->dt = this->lane->dt;
@@ -53,7 +68,7 @@ std::map<std::string, double> LCModel_KK::step(int index, ...) {
         return on_ramp_cal();
     } else {
         // You need to define TrasimError and handle the error condition here
-        throw std::runtime_error("没有对应的处理函数！");
+        throw std::runtime_error("There is no corresponding processing function!");
     }
 }
 
@@ -74,14 +89,14 @@ std::map<std::string, double> LCModel_KK::base_cal() {
 
     // 判断是否选择左转
     if (this->left_lane != nullptr) {
-        Vehicle* _f;
-        Vehicle* _l;
-        std::tie(_f, _l) = this->left_lane->get_relative_car(this->vehicle->x);
+        Vehicle* left_f;
+        Vehicle* left_l;
+        std::tie(left_f, left_l) = this->left_lane->get_relative_car(this->vehicle->x);
         bool safe_;
-        std::tie(safe_, left_d_l) = this->safe_check(_f, _l);
+        std::tie(safe_, left_d_l) = this->safe_check(left_f, left_l);
         if (safe_) {
-            if (_l != nullptr) {
-                if (_l->v >= l_v + this->_delta_1 && this->vehicle->v > l_v) {
+            if (left_l != nullptr) {
+                if (left_l->v >= l_v + this->_delta_1 && this->vehicle->v > l_v) {
                     left_ = true;
                 }
             } else {
@@ -92,14 +107,14 @@ std::map<std::string, double> LCModel_KK::base_cal() {
 
     // 判断是否选择右转
     if (this->right_lane != nullptr) {
-        Vehicle* _f;
-        Vehicle* _l;
-        std::tie(_f, _l) = this->right_lane->get_relative_car(this->vehicle->x);
+        Vehicle* right_f;
+        Vehicle* right_l;
+        std::tie(right_f, right_l) = this->right_lane->get_relative_car(this->vehicle->x);
         bool safe_;
-        std::tie(safe_, right_d_l) = this->safe_check(_f, _l);
+        std::tie(safe_, right_d_l) = this->safe_check(right_f, right_l);
         if (safe_) {
-            if (_l != nullptr) {
-                if (_l->v >= l_v + this->_delta_2 || _l->v >= this->vehicle->v + this->_delta_2) {
+            if (right_l != nullptr) {
+                if (right_l->v >= l_v + this->_delta_2 || right_l->v >= this->vehicle->v + this->_delta_2) {
                     right_ = true;
                 }
             } else {
@@ -194,11 +209,11 @@ std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(Vehicle*
     if (!head_safe || !behind_safe) {
         if (_l != nullptr && _f != nullptr) {
             if (_f->gap() > this->_lambda_b * _f->v + this->vehicle->length) {
-                bool condition_1 = (this->vehicle->pos_list.back() < this->xm && this->vehicle->x >= this->xm);
-                bool condition_2 = (this->vehicle->pos_list.back() >= this->xm && this->vehicle->x < this->xm);
+                bool condition_1 = (this->vehicle->pos_list.back() < this->xm && this->vehicle->x >= xm_);
+                bool condition_2 = (this->vehicle->pos_list.back() >= this->xm && this->vehicle->x < xm_);
                 if (condition_1 || condition_2) {
                     head_safe = behind_safe = true;
-                    x = this->xm;
+                    x = xm_;
                 }
             }
         }
@@ -208,10 +223,17 @@ std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(Vehicle*
     return {head_safe && behind_safe, d_l, v_hat, x};
 }
 
+/**
+ *
+ * @param follower
+ * @param leader
+ * @param v_hat 是否为ego的后车和ego, 若是则需要传ego的v_hat
+ * @return
+ */
 std::tuple<double, bool, double, double> LCModel_KK::safe_func_on_ramp_common(Vehicle* follower, Vehicle* leader, double v_hat) const {
     double d_l = -leader->get_dist(follower->x) - leader->length;
     double D;
-    if (v_hat == NAN) {
+    if (std::isnan(v_hat)) {
         v_hat = std::min(leader->v, follower->v + this->_delta_vr_1);
         D = cal_G(this->_k, this->_tau, this->_a_0, v_hat, leader->v);
     } else {

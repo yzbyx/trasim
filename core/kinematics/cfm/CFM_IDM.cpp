@@ -23,6 +23,7 @@ CFM_IDM::CFM_IDM(Vehicle* vehicle_, const std::map<std::string, double>& f_param
      * 期望速度
      */
     _v0 = param_map["v0"];
+    _v0 = std::min(_v0, get_speed_limit());
     /**
      * 静止安全间距
      */
@@ -57,8 +58,7 @@ double CFM_IDM::get_expect_dec() {
 }
 
 double CFM_IDM::get_expect_acc() {
-    return this->_omega * (1 - (this->vehicle->v / this->_v0) * (this->vehicle->v / this->_v0) *
-    (this->vehicle->v / this->_v0) * (this->vehicle->v / this->_v0));
+    return this->_omega * (1 - std::pow(this->vehicle->v / this->_v0, _delta));
 }
 
 void CFM_IDM::_update_dynamic() {
@@ -74,11 +74,7 @@ std::map<std::string, double> CFM_IDM::step(int index, ...) {
 
     double sStar = _s0 + _s1 * sqrt(vehicle->v / _v0) + _t * vehicle->v +
             vehicle->v * (vehicle->v - vehicle->leader->v) / (2 * sqrt(_omega * _d));
-    double leaderX = vehicle->x + vehicle->dhw();
-    double xOffset = vehicle->x;
-    double leaderL = vehicle->leader->length;
-    double gap = leaderX - xOffset - leaderL + 1e-12;
-    double finalAcc = _omega * (1 - pow(vehicle->v / _v0, _delta) - pow(sStar / gap, 2));
+    double finalAcc = _omega * (1 - pow(vehicle->v / _v0, _delta) - pow(sStar / vehicle->gap(), 2));
 
     return {{"a", finalAcc}};
 }

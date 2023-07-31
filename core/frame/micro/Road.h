@@ -10,9 +10,10 @@
 #include <map>
 #include "../../Constants.h"
 #include "LaneAbstract.h"
+#include "../../../ui/UI.h"
 
 class Vehicle;
-
+class UI;
 class DataProcessor;
 
 struct VehicleData;
@@ -34,6 +35,10 @@ public:
     double dt;
     double time_;
 
+    bool has_ui;
+    int frame_rate;
+    UI* ui;
+
     std::map<C_Info, std::vector<double>> road_total_data;
     DataProcessor * data_processor;
 
@@ -54,7 +59,7 @@ public:
 
     std::vector<int> find_on_lanes(int car_id);
 
-    void take_over(int car_id, double acc_values, const std::map<std::string, double> &lc_result);
+    void cf_take_over(int car_id, double acc_values);
 
     int get_appropriate_car(int lane_add_num);
 
@@ -93,6 +98,12 @@ public:
     void run_config(bool data_save, bool has_ui, double dt_, int sim_step_, int frame_rate, int warm_up_step);
 
     std::map<C_Info, std::vector<double>> &get_road_total_data();
+
+    void lc_take_over(int car_id, const std::map<std::string, double> &lc_result);
+
+    static void update_lc_state(LaneAbstract *lane);
+
+    int get_car_num_on_road();
 };
 
 #endif //TRASIM_ROAD_H

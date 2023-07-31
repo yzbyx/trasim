@@ -113,15 +113,21 @@ const std::map<C_Info, std::string> ALL_C_INFO_2_STRING = {
 };
 
 enum class Color {
-    BLUE = 0x0000FF,
-    GREEN = 0x00FF00,
-    RED = 0xFF0000
+    BLUE,
+    GREEN,
+    RED
 };
 
-const std::vector<Color> ALL_COLOR = {
+static const std::vector<Color> ALL_COLOR = {
       Color::RED,
       Color::GREEN,
       Color::BLUE
+};
+
+static const std::map<Color, std::vector<int>> COLOR_2_RGB = {
+        {Color::BLUE, {0, 0, 255}},
+        {Color::GREEN, {0, 255, 0}},
+        {Color::RED, {255, 0, 0}}
 };
 
 enum class SECTION_TYPE {

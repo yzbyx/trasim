@@ -11,6 +11,9 @@ LaneCircle::LaneCircle(double lane_length_, double speed_limit_) : LaneAbstract(
 
 void LaneCircle::step() {
     for (int i = 0; i < this->car_list.size(); ++i) {
+        if (car_list[i]->is_cf_take_over) {
+            continue;
+        }
         this->car_list[i]->step(i);
     }
 }

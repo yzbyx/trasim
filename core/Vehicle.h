@@ -62,8 +62,15 @@ public:
     double cf_acc;
 
     LCModel* lc_model;
+    bool is_cf_take_over;
+    bool is_lc_take_over;
     std::map<std::string, double> lc_result;
     std::map<std::string, double> lc_res_pre;
+    LaneAbstract* lc_target_lane;
+    /**
+     * 目标车道的前后车
+     */
+    std::pair<Vehicle*, Vehicle*> lc_f_l;
 
     double last_step_lc_status();
 

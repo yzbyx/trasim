@@ -30,6 +30,8 @@ private:
 
     double xm;
 
+    static const std::map<std::string, double> default_f_param;
+
     LaneAbstract* left_lane;
     LaneAbstract* right_lane;
     LaneAbstract* lane{};
