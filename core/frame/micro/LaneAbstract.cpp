@@ -65,20 +65,17 @@ void LaneAbstract::set_section_type(SECTION_TYPE type_, double start_pos, double
     }
 }
 
-std::set<SECTION_TYPE> LaneAbstract::get_section_type(double pos, VType car_type) {
-    std::set<SECTION_TYPE> type_ = {};
+std::vector<SECTION_TYPE> LaneAbstract::get_section_type(double pos, VType car_type) {
+    std::vector<SECTION_TYPE> type_;
     if (section_type.empty()) {
-        type_.insert(SECTION_TYPE::BASE);
+        type_.push_back(SECTION_TYPE::BASE);
     }
 
     auto section_type_for_type = section_type.find(car_type);
     if (section_type_for_type != section_type.end()) {
         for (const auto& [key, pos_] : section_type_for_type->second) {
-            if ((pos_[0] <= pos) && (pos < pos_[1])) {
-                type_.insert(key);
-            }
-            if (pos == lane_length && pos == pos_[1]) {
-                type_.insert(key);
+            if ((pos_[0] <= pos) && (pos < pos_[1]) || (pos == lane_length && pos == pos_[1])) {
+                type_.push_back(key);
             }
         }
     }
@@ -151,10 +148,10 @@ void LaneAbstract::car_config(double car_num, double car_length, VType car_type,
 }
 
 std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
-    int car_num_total_ = std::accumulate(this->car_num_list.begin(), this->car_num_list.end(), 0);
+    car_num_total = std::accumulate(this->car_num_list.begin(), this->car_num_list.end(), 0);
     double car_length_total = std::inner_product(this->car_num_list.begin(), this->car_num_list.end(),
                                                 this->car_length_list.begin(), 0.);
-    double gap = (this->lane_length - car_length_total) / car_num_total_;
+    double gap = (this->lane_length - car_length_total) / car_num_total;
     if (gap < 0) {
         throw std::runtime_error("At this density, vehicles overlap!");
     }
@@ -607,6 +604,10 @@ void LaneAbstract::car_loader(double flow_rate_, THW_DISTRIBUTION thw_distributi
 
 }
 
+std::map<C_Info, std::vector<double>> LaneAbstract::get_lane_total_data() const {
+    return data_container->get_lane_total_data();
+}
+
 bool LaneAbstract::LaneIterator::operator!=(const LaneAbstract::LaneIterator &other) const {
     return ptr->step_ != other.ptr->sim_step;
 }
@@ -623,8 +624,8 @@ LaneAbstract::LaneIterator &LaneAbstract::LaneIterator::operator++() {
     return *this;
 }
 
-int &LaneAbstract::LaneIterator::operator*() {
-    return ptr->step_;
+std::pair<int, int> LaneAbstract::LaneIterator::operator*() {
+    return {ptr->step_, stage};
 }
 
 LaneAbstract::LaneIterator::LaneIterator(LaneAbstract *p) {

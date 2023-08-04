@@ -21,7 +21,7 @@ LCModel* get_lc_model(Vehicle* _driver, LCM name, const std::map<std::string, do
     if (name == LCM::KK) {
         return new LCModel_KK(_driver, param);
     }
-    if (name == LCM::ACC) {
+    else if (name == LCM::ACC) {
 //        return new LCModel_ACC(_driver, param);
     }
     return nullptr; // Return nullptr if name is not provided or not recognized

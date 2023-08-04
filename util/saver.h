@@ -2,8 +2,8 @@
 // Created by yzbyx on 2023/7/25.
 //
 
-#ifndef TRASIM_SAVE_H
-#define TRASIM_SAVE_H
+#ifndef TRASIM_SAVER_H
+#define TRASIM_SAVER_H
 
 
 #include <string>
@@ -13,5 +13,4 @@
 
 void save_data_to_txt(const std::string &path_, const std::map<C_Info, std::vector<double>> & data);
 
-
-#endif //TRASIM_SAVE_H
+#endif //TRASIM_SAVER_H

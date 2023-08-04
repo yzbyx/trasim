@@ -1,13 +1,13 @@
 #include <string>
 #include <map>
 #include "../../core/frame/micro/Road.h"
-#include "../../util/save.h"
+#include "../../util/saver.h"
 #include "../../util/timer.h"
 
 //
 // Created by yzbyx on 2023/7/23.
 //
-int main() {
+int road_test() {
     time_t timeIn = time(nullptr);
     std::string timeStart = get_current_time();
 
@@ -18,8 +18,8 @@ int main() {
     int follower_index = -1;
     double dt = 0.1;
     int warm_up_step = 0;
-    int sim_step = warm_up_step + static_cast<int>(3600 / dt);
-    int offset_step = static_cast<int>(1800 / dt);
+    int sim_step = warm_up_step + static_cast<int>(360 / dt);
+    int offset_step = static_cast<int>(180 / dt);
 
     bool is_circle = false;
     int road_length = 15000;
@@ -76,19 +76,19 @@ int main() {
             take_over_index = sim.get_appropriate_car(0);
             std::cout << "take_over_index: " << take_over_index << std::endl;
         }
-        std::cout << "step: " << step << " car_num: " << sim.get_car_num_on_road() << std::endl;
+//        std::cout << "step: " << step << " car_num: " << sim.get_car_num_on_road() << std::endl;
     }
     std::cout << "sim end" << std::endl;
 
     auto temp = sim.get_road_total_data();
     std::cout << "data get end" << std::endl;
 
-//    save_data_to_txt("D:\\test.txt", temp);
-//    std::cout << "data saved" << std::endl;
+    save_data_to_txt("D:\\test.txt", temp);
+    std::cout << "data saved" << std::endl;
 
     time_t timeOut = time(nullptr);
-    std::string log_string = std::string("[Road_run] time usage: ") + timeStart + " + " +
-                             std::to_string((timeOut - timeIn) * 1000L / 1000.0L) + " s";
+    std::string log_string = std::string("[road_test] time usage: ") + timeStart + " + " +
+                             std::to_string(timeOut - timeIn) + " s";
     std::cout << log_string << std::endl;
 
     return 0;

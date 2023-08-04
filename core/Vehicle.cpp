@@ -49,9 +49,9 @@ void Vehicle::step(int index) {
 
 void Vehicle::step_lane_change(int index, LaneAbstract *left_lane, LaneAbstract *right_lane) {
     lc_result = lc_model->step(index, left_lane, right_lane);
-    if (lc_result["lc"] == -1) {
+    if (lc_result.at("lc") == -1) {
         lc_target_lane = left_lane;
-    } else if (lc_result["lc"] == 1) {
+    } else if (lc_result.at("lc") == 1) {
         lc_target_lane = right_lane;
     }
     lc_res_pre = lc_result;
@@ -110,7 +110,13 @@ std::vector<double> Vehicle::get_data_list(C_Info info) {
         std::vector<double> cf_id_list(pos_list.size(), static_cast<int>(cf_model->name));
         return cf_id_list;
     } else if (info == C_Info::lc_id) {
-        std::vector<double> lc_id_list(pos_list.size(), static_cast<int>(lc_model->name));
+        int value;
+        if (lc_model != nullptr) {
+            value = static_cast<int>(lc_model->name);
+        } else {
+            value = -1;
+        }
+        std::vector<double> lc_id_list(pos_list.size(), value);
         return lc_id_list;
     } else if (info == C_Info::safe_ttc) {
         return ttc_list;

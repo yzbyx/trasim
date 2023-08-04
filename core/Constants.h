@@ -91,25 +91,25 @@ const std::vector<C_Info> ALL_C_INFO = {
 };
 
 const std::map<C_Info, std::string> ALL_C_INFO_2_STRING = {
-        {C_Info::lane_add_num , "lane_add_num"},
-        {C_Info::id, "v_id"},
-        {C_Info::step, "step"},
-        {C_Info::time, "time"},
-        {C_Info::a, "a"},
-        {C_Info::v, "v"},
-        {C_Info::x, "x"},
-        {C_Info::dhw, "dhw"},
-        {C_Info::thw, "thw"},
-        {C_Info::gap, "gap"},
-        {C_Info::dv, "dv"},
-        {C_Info::cf_id, "cf_id"},
-        {C_Info::lc_id, "lc_id"},
-        {C_Info::car_type, "car_type"},
-        {C_Info::safe_ttc, "ttc"},
+        {C_Info::lane_add_num , "Lane Add Num"},
+        {C_Info::id, "ID"},
+        {C_Info::step, "Step"},
+        {C_Info::time, "Time [s]"},
+        {C_Info::a, "Acceleration [m/s^2]"},
+        {C_Info::v, "Velocity [m/s]"},
+        {C_Info::x, "Position [m]"},
+        {C_Info::dhw, "Distance Headway [m]"},
+        {C_Info::thw, "Time Headway [s]"},
+        {C_Info::gap, "Gap [m]"},
+        {C_Info::dv, "Dv [m/s]"},
+        {C_Info::cf_id, "cf model ID"},
+        {C_Info::lc_id, "lc model ID"},
+        {C_Info::car_type, "car type"},
+        {C_Info::safe_ttc, "ttc (s)"},
         {C_Info::safe_tet, "tet"},
-        {C_Info::safe_tit, "tit"},
-        {C_Info::safe_picud, "picud"},
-        {C_Info::safe_picud_KK, "picud_KK"}
+        {C_Info::safe_tit, "tit (s)"},
+        {C_Info::safe_picud, "picud (m)"},
+        {C_Info::safe_picud_KK, "picud_KK (m)"}
 };
 
 enum class Color {

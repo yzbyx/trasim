@@ -75,7 +75,7 @@ public:
     int get_new_car_id();
     void set_section_type(SECTION_TYPE type_, double start_pos = -1, double end_pos = -1,
                           std::vector<VType> car_types = {});
-    std::set<SECTION_TYPE> get_section_type(double pos, VType car_type);
+    std::vector<SECTION_TYPE> get_section_type(double pos, VType car_type);
 
     void set_speed_limit(double speed_limit = 30, double start_pos = -1, double end_pos = -1, std::vector<VType> car_types = {});
 
@@ -147,7 +147,7 @@ public:
     public:
         explicit LaneIterator(LaneAbstract* p);
 
-        int& operator*();
+        std::pair<int, int> operator*();
 
         LaneIterator& operator++();
 
@@ -162,6 +162,8 @@ public:
     LaneIterator end() {
         return LaneIterator(this);
     }
+
+    std::map<C_Info, std::vector<double>> get_lane_total_data() const;
 };
 
 #endif //TRASIM_LANEABSTRACT_H

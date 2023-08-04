@@ -19,5 +19,7 @@ Obstacle::Obstacle(VType type_) {
 }
 
 Obstacle::~Obstacle() {
-    delete car_shape;
+    if (car_shape != nullptr) {
+        delete car_shape;
+    }
 }

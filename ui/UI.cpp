@@ -19,7 +19,9 @@ void UI::ui_init(const std::string& caption, int frame_rate_) {
     this->frame_rate = frame_rate_;
     screen_height = static_cast<int>((frame->lane_length / 1000 + base_line_factor) * single_height * height_scale);
     screen_width = static_cast<int>(width_base * width_scale);
-    screen = new sf::RenderWindow(sf::VideoMode(screen_width, screen_height), caption);
+    auto mode = sf::VideoMode(screen_width, screen_height);
+    auto temp = sf::RenderWindow(mode, caption);
+    screen = new sf::RenderWindow(mode, caption);
     clock = std::make_unique<sf::Clock>();
 
     lane_list = frame->lane_list;

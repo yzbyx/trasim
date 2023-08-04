@@ -61,10 +61,10 @@ std::map<std::string, double> LCModel_KK::step(int index, ...) {
     right_lane = va_arg(args, LaneAbstract *); // Get the right_lane argument from variable arguments
     va_end(args); // Clean up the va_list
 
-    std::set<SECTION_TYPE> type_ = lane->get_section_type(vehicle->x, vehicle->type);
-    if (type_.count(SECTION_TYPE::BASE) > 0) {
+    std::vector<SECTION_TYPE> type_ = lane->get_section_type(vehicle->x, vehicle->type);
+    if (std::find(type_.begin(), type_.end(), SECTION_TYPE::BASE) != type_.end()) {
         return base_cal();
-    } else if (type_.count(SECTION_TYPE::ON_RAMP) > 0 ) {
+    } else if (std::find(type_.begin(), type_.end(), SECTION_TYPE::ON_RAMP) != type_.end()) {
         return on_ramp_cal();
     } else {
         // You need to define TrasimError and handle the error condition here

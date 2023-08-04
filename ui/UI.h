@@ -10,6 +10,7 @@
 #include <vector>
 #include <memory>
 #include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
 #include <mutex>
 
 class LaneAbstract; // 假设LaneAbstract类的定义在其他地方

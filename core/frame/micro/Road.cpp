@@ -75,7 +75,7 @@ void Road::run_config(bool data_save, bool has_ui_, double dt_, int sim_step_, i
     frame_rate = frame_rate_;
 
     if (has_ui) {
-        ui->ui_init("Microscopic Traffic Flow Simulation", frame_rate_);
+        ui->ui_init("Trasim", frame_rate_);
     }
 
     for (auto lane : this->lane_list) {
@@ -127,9 +127,8 @@ void Road::step_lane_change() {
         for (int i = 0; i < lane->car_list.size(); ++i) {
             for (auto car : lane->car_list) {
                 if (car->type != VType::OBSTACLE && car->lc_model != nullptr && !car->is_lc_take_over) {
-                    LaneAbstract* left, *right;
-                    std::tie(left, right) = Road::get_available_adjacent_lane(lane, car->x, car->type);
-                    car->step_lane_change(i, left, right);
+                    auto adjacentLane = Road::get_available_adjacent_lane(lane, car->x, car->type);
+                    car->step_lane_change(i, adjacentLane.first, adjacentLane.second);
                 }
             }
         }
@@ -187,13 +186,14 @@ bool Road::check_and_correct_lc_pos(LaneAbstract* target_lane, Vehicle* car_lc_l
 std::pair<LaneAbstract*, LaneAbstract*> Road::get_available_adjacent_lane(LaneAbstract* lane, double pos, VType car_type) {
     std::vector<LaneAbstract*> lefts = lane->left_neighbour_lanes;
     std::vector<LaneAbstract*> rights = lane->right_neighbour_lanes;
-    std::set<SECTION_TYPE> section_type = lane->get_section_type(pos, car_type);
+    std::vector<SECTION_TYPE> section_type = lane->get_section_type(pos, car_type);
 
-    if (section_type.count(SECTION_TYPE::NO_LEFT) > 0) {
+    if (std::find(section_type.begin(), section_type.end(), SECTION_TYPE::NO_LEFT) != section_type.end()) {
         lefts = std::vector<LaneAbstract*>{nullptr};
     } else {
         for (int i = static_cast<int>(lefts.size()) - 1; i >= 0; --i) {
-            if (lefts[i]->get_section_type(pos, car_type).count(SECTION_TYPE::NO_RIGHT_CAR) > 0) {
+            std::vector<SECTION_TYPE> temp = lefts[i]->get_section_type(pos, car_type);
+            if (std::find(temp.begin(), temp.end(), SECTION_TYPE::NO_RIGHT_CAR) != temp.end()) {
                 lefts.erase(lefts.begin() + i);
             }
         }
@@ -202,12 +202,13 @@ std::pair<LaneAbstract*, LaneAbstract*> Road::get_available_adjacent_lane(LaneAb
         }
     }
 
-    if (section_type.count(SECTION_TYPE::NO_RIGHT) > 0) {
+    if (std::find(section_type.begin(), section_type.end(), SECTION_TYPE::NO_RIGHT) != section_type.end()) {
         rights = std::vector<LaneAbstract*>{nullptr};
     } else {
         for (int i = static_cast<int>(rights.size()) - 1; i >= 0; --i) {
-            if (rights[i]->get_section_type(pos, car_type).count(SECTION_TYPE::NO_LEFT_CAR) > 0) {
-                rights.erase(rights.begin() + i);
+            std::vector<SECTION_TYPE> temp = lefts[i]->get_section_type(pos, car_type);
+            if (std::find(temp.begin(), temp.end(), SECTION_TYPE::NO_LEFT_CAR) != temp.end()) {
+                lefts.erase(lefts.begin() + i);
             }
         }
         if (rights.empty()) {
