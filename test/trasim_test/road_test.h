@@ -16,13 +16,14 @@ int road_test() {
     std::map<std::string, double> _car_param;
     int take_over_index = -1;
     int follower_index = -1;
+
     double dt = 0.1;
-    int warm_up_step = 0;
-    int sim_step = warm_up_step + static_cast<int>(360 / dt);
-    int offset_step = static_cast<int>(180 / dt);
+    int warm_up_step = static_cast<int>(30 / dt);
+    int sim_step = warm_up_step + static_cast<int>(30 * 6 / dt);
+    int offset_step = static_cast<int>(30 / dt);
 
     bool is_circle = false;
-    int road_length = 15000;
+    int road_length = 5000;
     int lane_num = 2;
     double v_length = 7.5;
 
@@ -41,9 +42,9 @@ int road_test() {
         }
         if (i == lane_num - 1) {
             // TODO: 将每种section type下的范围设置为vector，实现存储多个路段
-            lanes[i]->set_section_type(SECTION_TYPE::ON_RAMP, 10000, -1);
-            lanes[i]->set_section_type(SECTION_TYPE::NO_LEFT, 0, 10000);
-            lanes[i]->set_section_type(SECTION_TYPE::BASE, 0, 10000);
+            lanes[i]->set_section_type(SECTION_TYPE::ON_RAMP, 2000, -1);
+            lanes[i]->set_section_type(SECTION_TYPE::NO_LEFT, 0, 2000);
+            lanes[i]->set_section_type(SECTION_TYPE::BASE, 0, 5000);
             lanes[i]->set_block(10300);
         } else {
             // lanes[i].car_load();

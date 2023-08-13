@@ -35,6 +35,10 @@ public:
     int base_line_factor;
     int screen_width;
     int screen_height;
+    int lane_width;
+    int start_y;
+    sf::Text text;
+    sf::Font font;
     std::vector<LaneAbstract*> lane_list; // 使用std::vector存储lane_list，要确保LaneAbstract类的定义在此之前
     std::unique_ptr<sf::Clock> clock;
 };

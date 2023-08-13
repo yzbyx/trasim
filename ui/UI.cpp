@@ -13,6 +13,14 @@ UI::UI(Road* frame_abstract) : frame(frame_abstract), frame_rate(-1),
                                                      height_scale(2), single_height(20),
                                                      base_line_factor(2), screen_width(0),
                                                      screen_height(0), screen(nullptr), clock(nullptr) {
+    lane_width = 5;
+    start_y = base_line_factor * single_height;
+    text = sf::Text();
+#ifdef _WIN32
+    font.loadFromFile("times.ttf");
+#elif __linux__
+    font.loadFromFile("times.ttf");
+#endif
 }
 
 void UI::ui_init(const std::string& caption, int frame_rate_) {
@@ -20,11 +28,17 @@ void UI::ui_init(const std::string& caption, int frame_rate_) {
     screen_height = static_cast<int>((frame->lane_length / 1000 + base_line_factor) * single_height * height_scale);
     screen_width = static_cast<int>(width_base * width_scale);
     auto mode = sf::VideoMode(screen_width, screen_height);
-    auto temp = sf::RenderWindow(mode, caption);
-    screen = new sf::RenderWindow(mode, caption);
-    clock = std::make_unique<sf::Clock>();
+    screen = new sf::RenderWindow(mode, caption, sf::Style::Default, sf::ContextSettings{});
+    screen->setVerticalSyncEnabled(false);
+    if (frame_rate > 0) {
+        screen->setFramerateLimit(frame_rate);
+    }
 
+    clock = std::make_unique<sf::Clock>();
     lane_list = frame->lane_list;
+
+    text = sf::Text("steps: " + std::to_string(frame->step_), font, 20);
+    text.setFillColor(sf::Color::White);
 
     ui_update();
 
@@ -32,44 +46,11 @@ void UI::ui_init(const std::string& caption, int frame_rate_) {
 
 }
 
-std::mutex uiMutex; // 定义互斥锁
-
-void ui_thread(UI & ui) {
-    int step = -1;
-    while (ui.screen->isOpen()) {
-        sf::Event event;
-        while (ui.screen->pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                ui.screen->close();
-        }
-        // 使用互斥锁保护对ui对象的访问
-        std::lock_guard<std::mutex> lock(uiMutex);
-
-        if (ui.frame_rate > 0) {
-            sf::Time elapsed = ui.clock->restart();
-            sf::sleep(sf::milliseconds(static_cast<int>((1000. / ui.frame_rate) - elapsed.asMilliseconds())));
-        } else {
-            sf::sleep(sf::milliseconds(10));
-        }
-        if (step != ui.frame->step_) {
-            ui.ui_update();
-            ui.screen->display();
-            step = ui.frame->step_;
-        }
-    }
-}
-
 void UI::ui_update() {
-    std::lock_guard<std::mutex> lock(uiMutex);
-
     screen->clear(sf::Color::Black);
 
-    int lane_width = 5;
-    int start_y = base_line_factor * single_height;
-
-    sf::Font font;
-    font.loadFromFile(R"(E:\CProject\trasim\ui\times.ttf)");
-    sf::Text text("steps: " + std::to_string(frame->step_), font, 20);
+//    text.setString("steps: " + std::to_string(frame->step_));
+    text = sf::Text("steps: " + std::to_string(frame->step_), font, 20);
     text.setFillColor(sf::Color::White);
     screen->draw(text);
 
@@ -97,9 +78,6 @@ void UI::ui_update() {
                 std::vector<int> temp = COLOR_2_RGB.at(lane->car_list[i]->color);
                 car->car_shape->setFillColor(sf::Color(temp[0], temp[1], temp[2]));
             }
-//            std::cout << std::to_string(static_cast<int>(lane->car_list[i]->color)) << std::endl;
-
-//            car_shape.setFillColor(sf::Color::Yellow);
             car->car_shape->setPosition(pos_x, pos_y);
             screen->draw(*car->car_shape);
         }
@@ -109,4 +87,31 @@ void UI::ui_update() {
 
 UI::~UI() {
     delete screen;
+}
+
+std::mutex uiMutex; // 定义互斥锁
+
+void ui_thread(UI & ui) {
+    int step = -1;
+    while (ui.screen->isOpen()) {
+        sf::Event event;
+        while (ui.screen->pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                ui.screen->close();
+        }
+        // 使用互斥锁保护对ui对象的访问
+        std::lock_guard<std::mutex> lock(uiMutex);
+
+        if (ui.frame_rate > 0) {
+            sf::Time elapsed = ui.clock->restart();
+            sf::sleep(sf::milliseconds(static_cast<int>((1000. / ui.frame_rate) - elapsed.asMilliseconds())));
+        } else {
+            sf::sleep(sf::milliseconds(10));
+        }
+        if (step != ui.frame->step_) {
+            ui.ui_update();
+            ui.screen->display();
+            step = ui.frame->step_;
+        }
+    }
 }

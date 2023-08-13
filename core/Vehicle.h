@@ -72,6 +72,8 @@ public:
      */
     std::pair<Vehicle*, Vehicle*> lc_f_l;
 
+    std::vector<SECTION_TYPE> section_type;
+
     double last_step_lc_status();
 
     void set_cf_model(CFM cf_name, const std::map<std::string, double> &cf_param);
@@ -80,7 +82,8 @@ public:
 
     void step(int index);
 
-    void step_lane_change(int index, LaneAbstract* left_lane, LaneAbstract* right_lane);
+    void step_lane_change(int index, LaneAbstract *left_lane, LaneAbstract *right_lane,
+                          std::vector<SECTION_TYPE> section_type);
 
 
     double get_dist(double pos);

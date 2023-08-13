@@ -5,7 +5,6 @@
 #include <fstream>
 #include "saver.h"
 #include "print.h"
-#include <Python.h>
 
 
 void save_data_to_txt(const std::string &path_, const std::map<C_Info, std::vector<double>>& data) {

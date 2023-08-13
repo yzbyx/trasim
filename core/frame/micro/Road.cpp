@@ -127,8 +127,8 @@ void Road::step_lane_change() {
         for (int i = 0; i < lane->car_list.size(); ++i) {
             for (auto car : lane->car_list) {
                 if (car->type != VType::OBSTACLE && car->lc_model != nullptr && !car->is_lc_take_over) {
-                    auto adjacentLane = Road::get_available_adjacent_lane(lane, car->x, car->type);
-                    car->step_lane_change(i, adjacentLane.first, adjacentLane.second);
+                    auto result = Road::get_available_adjacent_lane(lane, car->x, car->type);
+                    car->step_lane_change(i, std::get<0>(result), std::get<1>(result), std::get<2>(result));
                 }
             }
         }
@@ -183,7 +183,7 @@ bool Road::check_and_correct_lc_pos(LaneAbstract* target_lane, Vehicle* car_lc_l
     return false;
 }
 
-std::pair<LaneAbstract*, LaneAbstract*> Road::get_available_adjacent_lane(LaneAbstract* lane, double pos, VType car_type) {
+std::tuple<LaneAbstract*, LaneAbstract*, std::vector<SECTION_TYPE>> Road::get_available_adjacent_lane(LaneAbstract* lane, double pos, VType car_type) {
     std::vector<LaneAbstract*> lefts = lane->left_neighbour_lanes;
     std::vector<LaneAbstract*> rights = lane->right_neighbour_lanes;
     std::vector<SECTION_TYPE> section_type = lane->get_section_type(pos, car_type);
@@ -219,7 +219,7 @@ std::pair<LaneAbstract*, LaneAbstract*> Road::get_available_adjacent_lane(LaneAb
     if (!(lefts.size() == 1 && rights.size() == 1)) {
         throw std::runtime_error("There are overlapping lanes!");
     }
-    return {lefts[0], rights[0]};
+    return {lefts[0], rights[0], section_type};
 }
 
 double Road::get_car_info(int car_id, C_Info info, int lane_add_num) {

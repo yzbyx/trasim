@@ -61,7 +61,7 @@ std::map<std::string, double> LCModel_KK::step(int index, ...) {
     right_lane = va_arg(args, LaneAbstract *); // Get the right_lane argument from variable arguments
     va_end(args); // Clean up the va_list
 
-    std::vector<SECTION_TYPE> type_ = lane->get_section_type(vehicle->x, vehicle->type);
+    std::vector<SECTION_TYPE> type_ = vehicle->section_type;
     if (std::find(type_.begin(), type_.end(), SECTION_TYPE::BASE) != type_.end()) {
         return base_cal();
     } else if (std::find(type_.begin(), type_.end(), SECTION_TYPE::ON_RAMP) != type_.end()) {

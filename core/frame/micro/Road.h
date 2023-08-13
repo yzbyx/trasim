@@ -50,7 +50,7 @@ public:
 
     static bool check_and_correct_lc_pos(LaneAbstract *target_lane, Vehicle *car_lc_last, Vehicle *car);
 
-    static std::pair<LaneAbstract *, LaneAbstract *>
+    static std::tuple<LaneAbstract *, LaneAbstract *, std::vector<SECTION_TYPE>>
     get_available_adjacent_lane(LaneAbstract *lane, double pos, VType car_type);
 
     double get_car_info(int car_id, C_Info info, int lane_add_num = -1);

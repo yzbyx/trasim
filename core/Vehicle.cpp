@@ -3,6 +3,8 @@
 //
 
 #include "Vehicle.h"
+
+#include <utility>
 #include "frame/micro/LaneAbstract.h"
 
 
@@ -47,7 +49,9 @@ void Vehicle::step(int index) {
     cf_acc = cf_model->step(index)["a"];
 }
 
-void Vehicle::step_lane_change(int index, LaneAbstract *left_lane, LaneAbstract *right_lane) {
+void Vehicle::step_lane_change(int index, LaneAbstract *left_lane, LaneAbstract *right_lane,
+                               std::vector<SECTION_TYPE> section_type_) {
+    this->section_type = std::move(section_type_);
     lc_result = lc_model->step(index, left_lane, right_lane);
     if (lc_result.at("lc") == -1) {
         lc_target_lane = left_lane;

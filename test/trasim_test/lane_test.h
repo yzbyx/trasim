@@ -9,6 +9,7 @@
 
 int lane_test() {
     time_t timeIn = time(nullptr);
+    time_t timeOut;
     std::string timeStart = get_current_time();
 
     bool is_circle = true;
@@ -54,8 +55,10 @@ int lane_test() {
     save_data_to_txt("D:\\test.txt", temp);
     std::cout << "data saved" << std::endl;
 
-    time_t timeOut = time(nullptr);
+    timeOut = time(nullptr);
     std::string log_string = std::string("[road_test] time usage: ") + timeStart + " + " +
                              std::to_string(timeOut - timeIn) + " s";
     std::cout << log_string << std::endl;
+
+    return 0;
 }
