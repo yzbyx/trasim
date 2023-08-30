@@ -7,7 +7,7 @@
 #include "../frame/micro/LaneAbstract.h"
 
 
-void DataContainer::config(const std::set<C_Info>& save_info_, bool add_all) {
+void DataContainer::config(const std::set<C_Info> &save_info_, bool add_all) {
     if (add_all) {
         save_info.insert(ALL_C_INFO.begin(), ALL_C_INFO.end());
         return;
@@ -23,11 +23,11 @@ void DataContainer::add_basic_info() {
  * Lane级别的数据获取
  * @param path_
  */
-std::map<C_Info, std::vector<double>> & DataContainer::get_lane_total_data() {
+std::map<C_Info, std::vector<double>> &DataContainer::get_lane_total_data() {
     get_total_car_has_data();
-    for (auto name : save_info) {
+    for (auto name: save_info) {
         lane_total_data[name] = {};
-        for (auto car : total_car_list_has_data) {
+        for (auto car: total_car_list_has_data) {
             std::vector<double> temp = car->get_data_list(name);
             lane_total_data[name].insert(lane_total_data[name].end(), temp.begin(), temp.end());
         }
@@ -35,10 +35,10 @@ std::map<C_Info, std::vector<double>> & DataContainer::get_lane_total_data() {
     return lane_total_data;
 }
 
-std::vector<Vehicle *> & DataContainer::get_total_car_has_data() {
+std::vector<Vehicle *> &DataContainer::get_total_car_has_data() {
     if (total_car_list_has_data.empty()) {
-        std::vector<Vehicle*> car_on_lane_has_data = {};
-        for (auto car : lane->car_list) {
+        std::vector<Vehicle *> car_on_lane_has_data = {};
+        for (auto car: lane->car_list) {
             if (car->has_data()) {
                 car_on_lane_has_data.push_back(car);
             }
@@ -51,7 +51,7 @@ std::vector<Vehicle *> & DataContainer::get_total_car_has_data() {
     return total_car_list_has_data;
 }
 
-DataContainer::DataContainer(LaneAbstract* lane_) {
+DataContainer::DataContainer(LaneAbstract *lane_) {
     lane = lane_;
     save_info = {};
     total_car_list_has_data = {};

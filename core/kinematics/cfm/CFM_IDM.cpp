@@ -6,16 +6,16 @@
 #include "../../Vehicle.h"
 
 const std::map<std::string, double> CFM_IDM::default_f_param = {
-        {"v0", 33.3},
-        {"s0", 2},
-        {"s1", 0},
+        {"v0",    33.3},
+        {"s0",    2},
+        {"s1",    0},
         {"delta", 4},
-        {"T", 1.6},
+        {"T",     1.6},
         {"omega", 0.73},
-        {"d", 1.67}
+        {"d",     1.67}
 };
 
-CFM_IDM::CFM_IDM(Vehicle* vehicle_, const std::map<std::string, double>& f_param_) : CFModel(vehicle_) {
+CFM_IDM::CFM_IDM(Vehicle *vehicle_, const std::map<std::string, double> &f_param_) : CFModel(vehicle_) {
     param_update(default_f_param);
     param_update(f_param_);
 
@@ -23,7 +23,15 @@ CFM_IDM::CFM_IDM(Vehicle* vehicle_, const std::map<std::string, double>& f_param
      * 期望速度
      */
     _v0 = param_map["v0"];
-    _v0 = std::min(_v0, get_speed_limit());
+
+    double speed_limit = get_speed_limit();
+    if (_v0 > speed_limit) {
+#ifdef IF_DEBUG
+        std::cout << "Warning: v0 is higher than lane speed limit" << std::endl;
+#endif
+        _v0 = speed_limit;
+    }
+
     /**
      * 静止安全间距
      */
@@ -65,21 +73,27 @@ void CFM_IDM::_update_dynamic() {
 
 }
 
-// 计算下一时间步的加速度
-std::map<std::string, double> CFM_IDM::step(int index, ...) {
+/**
+ * 计算下一时间步的加速度
+ * @param index
+ * @return
+ */
+double CFM_IDM::step(int index) {
     if (vehicle->leader == nullptr) {
-        return {{"a", get_expect_acc()}};
+        return get_expect_acc();
     }
     _update_dynamic();
 
     double sStar = _s0 + _s1 * sqrt(vehicle->v / _v0) + _t * vehicle->v +
-            vehicle->v * (vehicle->v - vehicle->leader->v) / (2 * sqrt(_omega * _d));
+                   vehicle->v * (vehicle->v - vehicle->leader->v) / (2 * sqrt(_omega * _d));
     double finalAcc = _omega * (1 - pow(vehicle->v / _v0, _delta) - pow(sStar / vehicle->gap(), 2));
 
-    return {{"a", finalAcc}};
+    return finalAcc;
 }
 
-// 通过平衡态速度计算三参数
+/**
+ * 通过平衡态速度计算三参数
+ */
 std::vector<double> CFM_IDM::equilibrium_state(double speed, double dhw, double v_length) {
     double sStar = _s0 + _s1 * sqrt(speed / _v0) + _t * speed;
     dhw = sStar / sqrt(1 - pow(speed / _v0, _delta)) + v_length;
@@ -89,7 +103,9 @@ std::vector<double> CFM_IDM::equilibrium_state(double speed, double dhw, double 
     return {k, q, v};
 }
 
-// 基本图 K-Q 线
+/**
+ * 基本图 K-Q 线
+ */
 double CFM_IDM::basic_diagram_k_to_q(double dhw, double car_length, double speed_limit) {
     double v0 = (speed_limit > 0) ? speed_limit : _v0;
     double v;
@@ -100,7 +116,7 @@ double CFM_IDM::basic_diagram_k_to_q(double dhw, double car_length, double speed
     while (max_iter--) {
         v = (left + right) / 2;
         double expr = _omega * (1 - pow(v / v0, _delta) -
-                pow((_s0 + _s1 * sqrt(v / v0) + _t * v) / (dhw - car_length), 2));
+                                pow((_s0 + _s1 * sqrt(v / v0) + _t * v) / (dhw - car_length), 2));
         if (expr > 0) {
             right = v;
         } else {
@@ -113,13 +129,15 @@ double CFM_IDM::basic_diagram_k_to_q(double dhw, double car_length, double speed
     return v * 3.6; // 将速度转换为 km/h
 }
 
-// 获取拥堵密度
+/**
+ * 获取拥堵密度
+ * @param car_length
+ * @return
+ */
 double CFM_IDM::get_jam_density(double car_length) const {
     return 1 / (_s0 + car_length);
 }
 
-
-// 获取期望速度
 double CFM_IDM::get_expect_speed() {
     return std::min(get_speed_limit(), _v0);
 }

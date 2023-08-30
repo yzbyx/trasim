@@ -22,7 +22,7 @@ public:
 
     void _update_dynamic() override;
 
-    std::map<std::string, double> step(int index, ...) override;
+    double step(int index) override;
 };
 
 #endif //TRASIM_CFM_DUMMY_H

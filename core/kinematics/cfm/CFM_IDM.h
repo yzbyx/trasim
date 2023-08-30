@@ -39,7 +39,7 @@ private:
 
     [[nodiscard]] double get_jam_density(double car_length) const override;
 
-    std::map<std::string, double> step(int index, ...) override;
+    double step(int index) override;
 
     double basic_diagram_k_to_q(double dhw, double car_length, double speed_limit) override;
 };

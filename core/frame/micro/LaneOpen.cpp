@@ -18,7 +18,8 @@ LaneOpen::LaneOpen(double lane_length_, double speed_limit_) : LaneAbstract(lane
     this->offset_pos = 0;
 }
 
-void LaneOpen::car_loader(double flow_rate_, THW_DISTRIBUTION thw_distribution_, double offset_time, double offset_pos_) {
+void
+LaneOpen::car_loader(double flow_rate_, THW_DISTRIBUTION thw_distribution_, double offset_time, double offset_pos_) {
     this->flow_rate = flow_rate_ / 3600.;
     this->thw_distribution = thw_distribution_;
     this->next_car_time += offset_time;
@@ -52,7 +53,7 @@ void LaneOpen::car_summon() {
             throw std::runtime_error("Vehicle not configured, unable to generate!");
         }
         if (!this->car_list.empty()) {
-            Vehicle* first = this->car_list[0];
+            Vehicle *first = this->car_list[0];
             if (first->x - first->length < 0) {
                 this->fail_summon_num++;
 //                std::cout << "Lane ID " << this->ID << " at step " << this->step_ << " summon car failed! "
@@ -77,7 +78,12 @@ void LaneOpen::car_summon() {
             return;
         }
 
-        auto* vehicle = new Vehicle(this, this->car_type_list[pos], this->get_new_car_id(), this->car_length_list[pos]);
+        auto *vehicle = new Vehicle(
+                this,
+                this->car_type_list[pos],
+                this->get_new_car_id(),
+                this->car_length_list[pos]
+        );
         vehicle->x = this->offset_pos;
         vehicle->set_cf_model(this->cf_name_list[pos], this->cf_param_list[pos]);
         vehicle->set_lc_model(this->lc_name_list[pos], this->lc_param_list[pos]);
@@ -86,7 +92,8 @@ void LaneOpen::car_summon() {
         if (initial_speed >= 0) {
             double min_speed = std::max(initial_speed - 0.5, 0.0);
             double max_speed = initial_speed + 0.5;
-            double speed = this->speed_with_random_list[pos] ? (RANDOM::DIS12(RANDOM::RND)) * (max_speed - min_speed) + min_speed : initial_speed;
+            double speed = this->speed_with_random_list[pos] ? (RANDOM::DIS12(RANDOM::RND)) * (max_speed - min_speed) +
+                                                               min_speed : initial_speed;
             vehicle->v = speed;
         } else {
             if (initial_speed == -1) {
@@ -97,7 +104,7 @@ void LaneOpen::car_summon() {
                 }
             } else {
                 if (!this->car_list.empty()) {
-                    Vehicle* leader = this->car_list[0];
+                    Vehicle *leader = this->car_list[0];
                     vehicle->v = leader->v;
                     double l_d = leader->dhw();
                     if (!std::isnan(l_d)) {
@@ -125,7 +132,7 @@ void LaneOpen::car_summon() {
 }
 
 void LaneOpen::update_state() {
-    for (auto & i : this->car_list) {
+    for (auto &i: this->car_list) {
         this->car_state_update_common(i);
 
         if (i->x > this->lane_length) {

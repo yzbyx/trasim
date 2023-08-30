@@ -5,21 +5,20 @@
 #include <cstdarg>
 #include "LCModel_KK.h"
 #include "../../frame/micro/LaneAbstract.h"
-#include "../cfm/CFModel.h"
 
 const std::map<std::string, double> LCModel_KK::default_f_param = {
-        {"delta_2", 5},
-        {"gamma_ahead", 1},
+        {"delta_2",      5},
+        {"gamma_ahead",  1},
         {"gamma_behind", 0.5},
-        {"k", 3.5},
-        {"tau", 1},
-        {"L_a", 150},
-        {"p_0", 0.45},
-        {"lambda_b", 0.75},
-        {"delta_vr_1", 10.}
+        {"k",            3.5},
+        {"tau",          1},
+        {"L_a",          150},
+        {"p_0",          0.45},
+        {"lambda_b",     0.75},
+        {"delta_vr_1",   10.}
 };
 
-LCModel_KK::LCModel_KK(Vehicle* vehicle, const std::map<std::string, double>& l_param_)
+LCModel_KK::LCModel_KK(Vehicle *vehicle, const std::map<std::string, double> &l_param_)
         : LCModel(vehicle) {
     this->name = LCM::KK;
     this->thesis = "Physics of Automated-Driving Vehicular Traffic";
@@ -53,13 +52,11 @@ void LCModel_KK::_update_dynamic() {
     this->dt = this->lane->dt;
 }
 
-std::map<std::string, double> LCModel_KK::step(int index, ...) {
+std::tuple<LaneAbstract *, double, double, double>
+LCModel_KK::step(int index, LaneAbstract* left_lane_, LaneAbstract* right_lane_) {
+    left_lane = left_lane_;
+    right_lane = right_lane_;
     _update_dynamic();
-    va_list args; // Declare a va_list to handle variable arguments
-    va_start(args, index); // Initialize the va_list
-    left_lane = va_arg(args, LaneAbstract *); // Get the left_lane argument from variable arguments
-    right_lane = va_arg(args, LaneAbstract *); // Get the right_lane argument from variable arguments
-    va_end(args); // Clean up the va_list
 
     std::vector<SECTION_TYPE> type_ = vehicle->section_type;
     if (std::find(type_.begin(), type_.end(), SECTION_TYPE::BASE) != type_.end()) {
@@ -72,9 +69,10 @@ std::map<std::string, double> LCModel_KK::step(int index, ...) {
     }
 }
 
-std::map<std::string, double> LCModel_KK::base_cal() {
+std::tuple<LaneAbstract *, double, double, double>
+LCModel_KK::base_cal() {
     if (this->vehicle->leader == nullptr) {
-        return {{"lc", 0.}};
+        return {vehicle->lane, vehicle->x, vehicle->v, vehicle->a};
     }
 
     bool left_ = false;
@@ -89,8 +87,8 @@ std::map<std::string, double> LCModel_KK::base_cal() {
 
     // 判断是否选择左转
     if (this->left_lane != nullptr) {
-        Vehicle* left_f;
-        Vehicle* left_l;
+        Vehicle *left_f;
+        Vehicle *left_l;
         std::tie(left_f, left_l) = this->left_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         std::tie(safe_, left_d_l) = this->safe_check(left_f, left_l);
@@ -107,8 +105,8 @@ std::map<std::string, double> LCModel_KK::base_cal() {
 
     // 判断是否选择右转
     if (this->right_lane != nullptr) {
-        Vehicle* right_f;
-        Vehicle* right_l;
+        Vehicle *right_f;
+        Vehicle *right_l;
         std::tie(right_f, right_l) = this->right_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         std::tie(safe_, right_d_l) = this->safe_check(right_f, right_l);
@@ -126,21 +124,22 @@ std::map<std::string, double> LCModel_KK::base_cal() {
     // 概率选择是否换道
     if (left_ || right_) {
         if (RANDOM::DIS12(RANDOM::LCM_RND) < this->_p_0) {
+            LaneAbstract* direct = nullptr;
             if (left_ && right_) {
-                int direct = left_d_l > right_d_l ? -1 : 1;
-                return {{"lc", direct}};
+                direct = left_d_l > right_d_l ? left_lane : right_lane;
             } else if (left_) {
-                return {{"lc", -1}};
+                direct = left_lane;
             } else {
-                return {{"lc", 1}};
+                direct = right_lane;
             }
+            return {direct, vehicle->x, vehicle->v, vehicle->a};
         }
     }
 
-    return {{"lc", 0}};
+    return {vehicle->lane, vehicle->x, vehicle->v, vehicle->a};
 }
 
-std::tuple<bool, double> LCModel_KK::safe_check(Vehicle* _f, Vehicle* _l) {
+std::tuple<bool, double> LCModel_KK::safe_check(Vehicle *_f, Vehicle *_l) {
     double d_l, D_ahead, d_f, D_behind;
     bool head_safe, behind_safe;
 
@@ -164,30 +163,31 @@ std::tuple<bool, double> LCModel_KK::safe_check(Vehicle* _f, Vehicle* _l) {
     return {head_safe && behind_safe, d_l};
 }
 
-std::map<std::string, double> LCModel_KK::on_ramp_cal() {
+std::tuple<LaneAbstract *, double, double, double> LCModel_KK::on_ramp_cal() {
     // 限制仅向左换道
     if (this->left_lane != nullptr) {
-        Vehicle* _f;
-        Vehicle* _l;
+        Vehicle *_f;
+        Vehicle *_l;
         std::tie(_f, _l) = this->left_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         double left_d_l, v_hat, x;
         std::tie(safe_, left_d_l, v_hat, x) = this->safe_check_on_ramp(_f, _l);
         if (safe_) {
-            return {{"lc", -1}, {"x", x}, {"v", v_hat}};
+            return {left_lane, x, v_hat, vehicle->a};
         }
     }
 
-    return {{"lc", 0}};
+    return {vehicle->lane, vehicle->x, vehicle->v, vehicle->a};
 }
 
-std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(Vehicle* _f, Vehicle* _l) {
+std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(Vehicle *_f, Vehicle *_l) {
     bool head_safe = false;
     double D_ahead, d_l, v_hat;
     double x = this->vehicle->x;
 
     if (_l != nullptr) {
-        std::tie(D_ahead, head_safe, d_l, v_hat) = this->safe_func_on_ramp_common(this->vehicle, _l, NAN);
+        std::tie(D_ahead, head_safe, d_l, v_hat) =
+                this->safe_func_on_ramp_common(this->vehicle, _l, NAN);
     } else {
         v_hat = this->vehicle->v + this->_delta_vr_1;
         head_safe = true;
@@ -197,7 +197,8 @@ std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(Vehicle*
     double D_behind;
     bool behind_safe = false;
     if (_f != nullptr) {
-        std::tie(D_behind, behind_safe, std::ignore, std::ignore) = this->safe_func_on_ramp_common(_f, this->vehicle, v_hat);
+        std::tie(D_behind, behind_safe, std::ignore, std::ignore) =
+                this->safe_func_on_ramp_common(_f, this->vehicle, v_hat);
     } else {
         behind_safe = true;
     }
@@ -230,7 +231,8 @@ std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(Vehicle*
  * @param v_hat 是否为ego的后车和ego, 若是则需要传ego的v_hat
  * @return
  */
-std::tuple<double, bool, double, double> LCModel_KK::safe_func_on_ramp_common(Vehicle* follower, Vehicle* leader, double v_hat) const {
+std::tuple<double, bool, double, double>
+LCModel_KK::safe_func_on_ramp_common(Vehicle *follower, Vehicle *leader, double v_hat) const {
     double d_l = -leader->get_dist(follower->x) - leader->length;
     double D;
     if (std::isnan(v_hat)) {

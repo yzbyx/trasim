@@ -21,8 +21,8 @@ void CFM_Dummy::_update_dynamic() {
 
 }
 
-std::map<std::string, double> CFM_Dummy::step(int index, ...) {
-    return {{"a", 0}};
+double CFM_Dummy::step(int index) {
+    return 0;
 }
 
 CFM_Dummy::CFM_Dummy(Vehicle *vehicle_, const std::map<std::string, double> &f_param)

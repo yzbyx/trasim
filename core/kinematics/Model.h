@@ -18,8 +18,6 @@ public:
 
     virtual void _update_dynamic() = 0;
 
-    virtual std::map<std::string, double> step(int index, ...) = 0;
-
     void param_update(const std::map<std::string, double>& param);
 
     Vehicle* vehicle;

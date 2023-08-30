@@ -38,13 +38,14 @@ private:
 
     void _update_dynamic() override;
 
-    std::map<std::string, double> base_cal() override;
-    std::map<std::string, double> on_ramp_cal() override;
+    std::tuple<LaneAbstract *, double, double, double> base_cal() override;
+    std::tuple<LaneAbstract *, double, double, double> on_ramp_cal() override;
     std::tuple<bool, double> safe_check(Vehicle* _f, Vehicle* _l);
     std::tuple<bool, double, double, double> safe_check_on_ramp(Vehicle* _f, Vehicle* _l);
     std::tuple<double, bool, double, double> safe_func_on_ramp_common(Vehicle *follower, Vehicle *leader, double v_hat) const;
 
-    std::map<std::string, double> step(int index, ...) override;
+    std::tuple<LaneAbstract *, double, double, double>
+    step(int index, LaneAbstract* left_lane, LaneAbstract* right_lane) override;
 };
 
 

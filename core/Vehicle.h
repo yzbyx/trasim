@@ -64,8 +64,7 @@ public:
     LCModel* lc_model;
     bool is_cf_take_over;
     bool is_lc_take_over;
-    std::map<std::string, double> lc_result;
-    std::map<std::string, double> lc_res_pre;
+    std::tuple<LaneAbstract*, double, double, double> lc_result;
     LaneAbstract* lc_target_lane;
     /**
      * 目标车道的前后车
@@ -74,7 +73,7 @@ public:
 
     std::vector<SECTION_TYPE> section_type;
 
-    double last_step_lc_status();
+    int last_step_lc_status();
 
     void set_cf_model(CFM cf_name, const std::map<std::string, double> &cf_param);
 
@@ -85,7 +84,11 @@ public:
     void step_lane_change(int index, LaneAbstract *left_lane, LaneAbstract *right_lane,
                           std::vector<SECTION_TYPE> section_type);
 
-
+    /**
+     * 获取pos与车头之间的距离，pos在前则正，在后则负，环形边界则以距离近者决定正负
+     * @param pos
+     * @return pos-x（对于环形边界经过修正）
+     */
     double get_dist(double pos);
 
     [[nodiscard]] bool is_first() const;

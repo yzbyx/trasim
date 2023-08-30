@@ -25,8 +25,8 @@ LaneAbstract::LaneAbstract(double lane_length_, double speed_limit_) {
     force_speed_limit = false;
     state_update_method = UpdateMethod::Euler;
     dt = 0.1;
-    warm_up_step = static_cast<int>(5 * 60 / dt);
-    sim_step = static_cast<int>(10 * 60 / dt);
+    warm_up_step = -1;
+    sim_step = -1;
     data_save = false;
 
     data_container = new DataContainer(this);
@@ -41,9 +41,28 @@ int LaneAbstract::get_new_car_id() {
     }
 }
 
-/***/
-
 void LaneAbstract::set_section_type(SECTION_TYPE type_, double start_pos, double end_pos,
+                                               std::vector<VType> car_types) {
+    if (start_pos < 0) {
+        start_pos = 0;
+    }
+    if (end_pos < 0) {
+        end_pos = lane_length;
+    }
+
+    if (car_types.empty()) {
+        car_types = ALL_V_TYPE;
+    }
+
+    for (VType car_type: car_types) {
+        if (section_type.find(car_type) == section_type.end()) {
+            section_type[car_type] = {};
+        }
+        section_type[car_type].insert({type_, {{start_pos, end_pos}}});
+    }
+}
+
+void LaneAbstract::set_control_type(CONTROL_TYPE type_, double start_pos, double end_pos,
                                     std::vector<VType> car_types) {
     if (start_pos < 0) {
         start_pos = 0;
@@ -56,34 +75,63 @@ void LaneAbstract::set_section_type(SECTION_TYPE type_, double start_pos, double
         car_types = ALL_V_TYPE;
     }
 
-    for (VType car_type : car_types) {
-        if (section_type.find(car_type) != section_type.end()) {
-            section_type[car_type].insert({type_, {start_pos, end_pos}});
-        } else {
-            section_type.insert({car_type, {{type_, {start_pos, end_pos}}}});
+    for (VType car_type: car_types) {
+        if (control_type.find(car_type) == control_type.end()) {
+            control_type[car_type] = {};
         }
+        control_type[car_type].insert({type_, {{start_pos, end_pos}}});
     }
 }
 
 std::vector<SECTION_TYPE> LaneAbstract::get_section_type(double pos, VType car_type) {
-    std::vector<SECTION_TYPE> type_;
     if (section_type.empty()) {
-        type_.push_back(SECTION_TYPE::BASE);
+        return {SECTION_TYPE::BASE};
     }
 
     auto section_type_for_type = section_type.find(car_type);
     if (section_type_for_type != section_type.end()) {
-        for (const auto& [key, pos_] : section_type_for_type->second) {
-            if ((pos_[0] <= pos) && (pos < pos_[1]) || (pos == lane_length && pos == pos_[1])) {
-                type_.push_back(key);
+        std::vector<SECTION_TYPE> type_;
+        for (const auto &[key, pos_]: section_type_for_type->second) {
+            for (const auto &[start_pos, end_pos]: pos_) {
+                if ((start_pos <= pos) && (pos < end_pos) || (pos == lane_length && pos == end_pos)) {
+                    type_.push_back(key);
+                    break;
+                }
             }
         }
+        return type_;
+    } else {
+        return {SECTION_TYPE::BASE};
     }
-    return type_;
+}
+
+std::vector<CONTROL_TYPE> LaneAbstract::get_control_type(double pos, VType car_type) {
+    if (control_type.empty()) {
+        return {CONTROL_TYPE::NO_LIMIT};
+    }
+
+    auto section_type_for_type = control_type.find(car_type);
+    if (section_type_for_type != control_type.end()) {
+        std::vector<CONTROL_TYPE> type_;
+        for (const auto &[key, pos_]: section_type_for_type->second) {
+            for (const auto &[start_pos, end_pos]: pos_) {
+                if ((start_pos <= pos) && (pos < end_pos) || (pos == lane_length && pos == end_pos)) {
+                    type_.push_back(key);
+                    break;
+                }
+            }
+        }
+        if (type_.empty()) {
+            return {CONTROL_TYPE::NO_LIMIT};
+        }
+        return type_;
+    } else {
+        return {CONTROL_TYPE::NO_LIMIT};
+    }
 }
 
 void LaneAbstract::set_speed_limit(double speed_limit_, double start_pos, double end_pos,
-                                    std::vector<VType> car_types) {
+                                   std::vector<VType> car_types) {
     if (start_pos < 0) {
         start_pos = 0;
     }
@@ -95,12 +143,11 @@ void LaneAbstract::set_speed_limit(double speed_limit_, double start_pos, double
         car_types = ALL_V_TYPE;
     }
 
-    for (VType car_type : car_types) {
-        if (speed_limit.find(car_type) != speed_limit.end()) {
-            speed_limit[car_type].insert({speed_limit_, {start_pos, end_pos}});
-        } else {
-            speed_limit.insert({car_type, {{speed_limit_, {start_pos, end_pos}}}});
+    for (VType car_type: car_types) {
+        if (speed_limit.find(car_type) == speed_limit.end()) {
+            speed_limit[car_type] = {};
         }
+        speed_limit[car_type].emplace_back(start_pos, end_pos, speed_limit_);
     }
 }
 
@@ -111,9 +158,10 @@ double LaneAbstract::get_speed_limit(double pos, VType car_type) {
 
     auto section_type_for_type = speed_limit.find(car_type);
     if (section_type_for_type != speed_limit.end()) {
-        for (const auto& [key, pos_] : section_type_for_type->second) {
-            if ((pos_[0] <= pos) && (pos < pos_[1])) {
-                return key;
+        for (const auto &[start_pos, end_pos, speed_limit_]:
+                section_type_for_type->second) {
+            if ((start_pos <= pos) && (pos < end_pos)) {
+                return speed_limit_;
             }
         }
     }
@@ -127,10 +175,10 @@ int LaneAbstract::car_num() const {
 void LaneAbstract::car_config(double car_num, double car_length, VType car_type, double car_initial_speed,
                               bool speed_with_random,
                               CFM cf_name,
-                              const std::map<std::string, double>& cf_param_,
-                              const std::map<std::string, double>& car_param_,
+                              const std::map<std::string, double> &cf_param_,
+                              const std::map<std::string, double> &car_param_,
                               LCM lc_name,
-                              const std::map<std::string, double>& lc_param_) {
+                              const std::map<std::string, double> &lc_param_) {
     // 如果是开边界，则car_num与car_loader配合可以代表车型比例，如果car_loader中的flow为复数，则car_num为真实生成车辆数
     if (0 < car_num && car_num < 1) {
         car_num = static_cast<float>(std::floor(this->lane_length * car_num / car_length));
@@ -150,7 +198,7 @@ void LaneAbstract::car_config(double car_num, double car_length, VType car_type,
 std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
     car_num_total = std::accumulate(this->car_num_list.begin(), this->car_num_list.end(), 0);
     double car_length_total = std::inner_product(this->car_num_list.begin(), this->car_num_list.end(),
-                                                this->car_length_list.begin(), 0.);
+                                                 this->car_length_list.begin(), 0.);
     double gap = (this->lane_length - car_length_total) / car_num_total;
     if (gap < 0) {
         throw std::runtime_error("At this density, vehicles overlap!");
@@ -176,7 +224,7 @@ std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
 
     for (size_t index_ = 0; index_ < car_type_index_list.size(); ++index_) {
         int i = car_type_index_list[index_];
-        auto* vehicle = new Vehicle{this, this->car_type_list[i], this->get_new_car_id(), this->car_length_list[i]};
+        auto *vehicle = new Vehicle{this, this->car_type_list[i], this->get_new_car_id(), this->car_length_list[i]};
         vehicle->set_cf_model(this->cf_name_list[i], this->cf_param_list[i]);
         vehicle->set_lc_model(this->lc_name_list[i], this->lc_param_list[i]);
         if (this->car_initial_speed_list[i] < 0) {
@@ -186,7 +234,7 @@ std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
         vehicle->v = (speed_with_random_list[i] ? std::uniform_real_distribution<double>(
                 std::max(this->car_initial_speed_list[i] - 0.5, 0.0),
                 this->car_initial_speed_list[i] + 0.5)(RANDOM::RND)
-                                                     : this->car_initial_speed_list[i]);
+                                                : this->car_initial_speed_list[i]);
         vehicle->a = 0;
         vehicle->set_car_param(this->car_param_list[i]);
 
@@ -231,7 +279,7 @@ std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
 
     std::vector<int> result;
     result.reserve(this->car_list.size());
-    for (const auto& car : this->car_list) {
+    for (const auto &car: this->car_list) {
         result.push_back(car->ID);
     }
 
@@ -245,7 +293,7 @@ void LaneAbstract::run_config(
         double dt_,
         int sim_step_,
         bool force_speed_limit_
-        ) {
+) {
     this->data_save = data_save_;
     this->warm_up_step = warm_up_step_;
     this->dt = dt_;
@@ -303,7 +351,7 @@ void LaneAbstract::run_third_part() {
     this->time_ += this->dt;
 }
 
-void LaneAbstract::car_state_update_common(Vehicle* car) {
+void LaneAbstract::car_state_update_common(Vehicle *car) {
     double car_speed_before = car->v;
 
     if (this->state_update_method == UpdateMethod::Ballistic || this->state_update_method == UpdateMethod::Euler) {
@@ -326,7 +374,7 @@ void LaneAbstract::car_state_update_common(Vehicle* car) {
         car->v = expect_speed;
     } else if (car->v < 0) {
 //        throw std::runtime_error("车辆速度出现负数！");
-        car->a = - (car_speed_before / dt);
+        car->a = -(car_speed_before / dt);
         car->v = 0;
     } else {
         car->a = car->cf_acc;
@@ -348,16 +396,16 @@ void LaneAbstract::car_state_update_common(Vehicle* car) {
 }
 
 void LaneAbstract::record() {
-    for (const auto& car : this->car_list) {
+    for (const auto &car: this->car_list) {
         if (car->type != VType::OBSTACLE) {
             car->record();
         }
     }
 }
 
-Vehicle * LaneAbstract::make_dummy_car(double pos) {
-    auto* car = new Vehicle{this, VType::OBSTACLE, -1, 1e-5};
-    car->set_cf_model(CFM::DUMMY, std::map<std::string, double> {});
+Vehicle *LaneAbstract::make_dummy_car(double pos) {
+    auto *car = new Vehicle{this, VType::OBSTACLE, -1, 1e-5};
+    car->set_cf_model(CFM::DUMMY, std::map<std::string, double>{});
     car->x = pos + 1e-5;
     car->v = 0;
     car->a = 0;
@@ -365,7 +413,7 @@ Vehicle * LaneAbstract::make_dummy_car(double pos) {
 }
 
 void LaneAbstract::set_block(double pos) {
-    Vehicle * dummy_car = make_dummy_car(pos);
+    Vehicle *dummy_car = make_dummy_car(pos);
     this->car_insert_by_instance(dummy_car, true);
 }
 
@@ -373,7 +421,7 @@ int LaneAbstract::get_appropriate_car() const {
     double pos = this->lane_length / 2;
     std::vector<double> car_pos;
     car_pos.reserve(this->car_list.size());
-    for (const auto& car : this->car_list) {
+    for (const auto &car: this->car_list) {
         car_pos.push_back(car->x);
     }
 
@@ -387,7 +435,7 @@ int LaneAbstract::get_appropriate_car() const {
 }
 
 void LaneAbstract::take_over(int car_id, double acc_values) {
-    for (auto& car : this->car_list) {
+    for (auto &car: this->car_list) {
         if (car->ID == car_id) {
             car->cf_acc = acc_values;
             break; // Assuming each car ID is unique, stop the loop once we find the matching car.
@@ -395,8 +443,8 @@ void LaneAbstract::take_over(int car_id, double acc_values) {
     }
 }
 
-int LaneAbstract::car_insert(VehicleData & data) {
-    Vehicle* car = make_car(data);
+int LaneAbstract::car_insert(VehicleData &data) {
+    Vehicle *car = make_car(data);
     this->car_insert_by_instance(car, false);
     return car->ID;
 }
@@ -419,8 +467,8 @@ void LaneAbstract::car_remove(Vehicle *car, bool put_out_car_has_data, bool is_l
     }
 }
 
-Vehicle * LaneAbstract::make_car(VehicleData & data) {
-    auto* car = new Vehicle{this, data.car_type, this->get_new_car_id(), data.car_length};
+Vehicle *LaneAbstract::make_car(VehicleData &data) {
+    auto *car = new Vehicle{this, data.car_type, this->get_new_car_id(), data.car_length};
     car->set_cf_model(data.cf_name, data.cf_param);
     car->set_lc_model(data.lc_name, data.lc_param);
     car->set_car_param(const_cast<std::map<std::string, double> &>(data.car_param));
@@ -430,20 +478,20 @@ Vehicle * LaneAbstract::make_car(VehicleData & data) {
     return car;
 }
 
-bool LaneAbstract::car_insert_by_instance(Vehicle * car, bool is_dummy) {
+bool LaneAbstract::car_insert_by_instance(Vehicle *car, bool is_dummy) {
     car->lane = this;
     car->leader = car->follower = nullptr;
     if (!this->car_list.empty()) {
         std::vector<double> pos_list;
         pos_list.reserve(this->car_list.size());
-        for (const auto& lane_car : this->car_list) {
+        for (const auto &lane_car: this->car_list) {
             pos_list.push_back(lane_car->x);
         }
 
         auto it = std::upper_bound(pos_list.begin(), pos_list.end(), car->x);
         long long int index_ = std::distance(pos_list.begin(), it);
 
-        Vehicle* follower;
+        Vehicle *follower;
         if (index_ != 0) {
             follower = this->car_list[index_ - 1];
         } else {
@@ -455,7 +503,7 @@ bool LaneAbstract::car_insert_by_instance(Vehicle * car, bool is_dummy) {
         }
 
         if (follower != nullptr) {
-            Vehicle* leader = follower->leader;
+            Vehicle *leader = follower->leader;
 
             follower->leader = car;
             car->follower = follower;
@@ -480,7 +528,7 @@ bool LaneAbstract::car_insert_by_instance(Vehicle * car, bool is_dummy) {
 }
 
 double LaneAbstract::get_car_info(int id_, C_Info info_name) const {
-    for (auto car : this->car_list) {
+    for (auto car: this->car_list) {
         if (car->ID == id_) {
             if (info_name == C_Info::x) {
                 return car->x;
@@ -503,8 +551,8 @@ double LaneAbstract::get_car_info(int id_, C_Info info_name) const {
     return NAN;
 }
 
-Vehicle* LaneAbstract::get_car(int id_) {
-    for (auto car : this->car_list) {
+Vehicle *LaneAbstract::get_car(int id_) {
+    for (auto car: this->car_list) {
         if (car->ID == id_) {
             return car;
         }
@@ -512,7 +560,7 @@ Vehicle* LaneAbstract::get_car(int id_) {
     return nullptr;
 }
 
-int LaneAbstract::car_insert_middle(int front_car_id, VehicleData & data) {
+int LaneAbstract::car_insert_middle(int front_car_id, VehicleData &data) {
     int follower_id = get_relative_id(front_car_id, -1);
     double follower_pos = get_car_info(follower_id, C_Info::x);
     double follower_dhw = get_car_info(follower_id, C_Info::dhw);
@@ -524,21 +572,21 @@ int LaneAbstract::car_insert_middle(int front_car_id, VehicleData & data) {
     }
 
     data.car_pos = follower_pos + follower_dhw / 2;
-    Vehicle* car = make_car(data);
+    Vehicle *car = make_car(data);
     car_insert_by_instance(car, false);
     return car->ID;
 }
 
 int LaneAbstract::get_relative_id(int id_, int offset) {
-    Vehicle* car = get_relative_car_by_id(id_, offset);
+    Vehicle *car = get_relative_car_by_id(id_, offset);
     if (car)
         return car->ID;
     return -1;
 }
 
-Vehicle* LaneAbstract::get_relative_car_by_id(int id_, int offset) {
-    Vehicle* car = nullptr;
-    for (auto c : car_list) {
+Vehicle *LaneAbstract::get_relative_car_by_id(int id_, int offset) {
+    Vehicle *car = nullptr;
+    for (auto c: car_list) {
         if (c->ID == id_) {
             while (offset != 0) {
                 if (offset > 0) {
@@ -557,10 +605,24 @@ Vehicle* LaneAbstract::get_relative_car_by_id(int id_, int offset) {
     return nullptr;
 }
 
-std::pair<Vehicle*, Vehicle*> LaneAbstract::get_relative_car(double pos) {
-    for (auto car : car_list) {
-        if (car->x > pos) {
-            return std::make_pair(car->follower, car);
+/**
+ * 换道常调用的函数
+ * @param pos 要检索的位置
+ * @return
+ */
+std::pair<Vehicle *, Vehicle *> LaneAbstract::get_relative_car(double pos) {
+    if (pos > lane_length / 2) {
+        for (int i = car_num() - 1; i >= 0; --i) {
+            auto car = car_list[i];
+            if (car->x < pos) {
+                return std::make_pair(car, car->leader);
+            }
+        }
+    } else {
+        for (auto car: car_list) {
+            if (car->x > pos) {
+                return std::make_pair(car->follower, car);
+            }
         }
     }
 
@@ -575,10 +637,10 @@ std::pair<Vehicle*, Vehicle*> LaneAbstract::get_relative_car(double pos) {
 }
 
 void LaneAbstract::car_param_update(int id_,
-                                    std::map<std::string, double>& cf_param,
-                                    std::map<std::string, double>& lc_param,
-                                    std::map<std::string, double>& car_param) {
-    Vehicle* car = get_car(id_);
+                                    std::map<std::string, double> &cf_param,
+                                    std::map<std::string, double> &lc_param,
+                                    std::map<std::string, double> &car_param) {
+    Vehicle *car = get_car(id_);
     if (car != nullptr) {
         car->cf_model->param_update(cf_param);
         car->lc_model->param_update(lc_param);
@@ -587,10 +649,10 @@ void LaneAbstract::car_param_update(int id_,
 }
 
 LaneAbstract::~LaneAbstract() {
-    for (auto* car : car_list) {
+    for (auto *car: car_list) {
         delete car;
     }
-    for (auto* car : dummy_car_list) {
+    for (auto *car: dummy_car_list) {
         delete car;
     }
     delete data_container;
@@ -600,7 +662,8 @@ void LaneAbstract::car_summon() {
 
 }
 
-void LaneAbstract::car_loader(double flow_rate_, THW_DISTRIBUTION thw_distribution_, double offset_time, double offset_pos_) {
+void LaneAbstract::car_loader(double flow_rate_, THW_DISTRIBUTION thw_distribution_, double offset_time,
+                              double offset_pos_) {
 
 }
 

@@ -26,7 +26,7 @@ double CFModel::get_jam_density(double v_length) const {
     return -1;
 }
 
-[[maybe_unused]] double CFModel::basic_diagram_k_to_q(double dhw, double car_length, double speed_limit) {
+double CFModel::basic_diagram_k_to_q(double dhw, double car_length, double speed_limit) {
     return -1;
 }
 
