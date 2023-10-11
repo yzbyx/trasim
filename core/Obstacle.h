@@ -6,6 +6,7 @@
 #define TRASIM_OBSTACLE_H
 
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <memory>
 #include "Constants.h"
 
 class Obstacle {
@@ -22,7 +23,7 @@ public:
     explicit Obstacle(VType type_);
     virtual ~Obstacle();
 
-    sf::RectangleShape * car_shape;
+    std::shared_ptr<sf::RectangleShape> car_shape;
 };
 
 

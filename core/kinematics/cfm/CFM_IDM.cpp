@@ -3,6 +3,8 @@
 //
 
 #include "CFM_IDM.h"
+
+#include <utility>
 #include "../../Vehicle.h"
 
 const std::map<std::string, double> CFM_IDM::default_f_param = {
@@ -15,7 +17,7 @@ const std::map<std::string, double> CFM_IDM::default_f_param = {
         {"d",     1.67}
 };
 
-CFM_IDM::CFM_IDM(Vehicle *vehicle_, const std::map<std::string, double> &f_param_) : CFModel(vehicle_) {
+CFM_IDM::CFM_IDM(std::shared_ptr<Vehicle> vehicle_, const std::map<std::string, double> &f_param_) : CFModel(std::move(vehicle_)) {
     param_update(default_f_param);
     param_update(f_param_);
 
@@ -23,15 +25,6 @@ CFM_IDM::CFM_IDM(Vehicle *vehicle_, const std::map<std::string, double> &f_param
      * 期望速度
      */
     _v0 = param_map["v0"];
-
-    double speed_limit = get_speed_limit();
-    if (_v0 > speed_limit) {
-#ifdef IF_DEBUG
-        std::cout << "Warning: v0 is higher than lane speed limit" << std::endl;
-#endif
-        _v0 = speed_limit;
-    }
-
     /**
      * 静止安全间距
      */
@@ -69,7 +62,7 @@ double CFM_IDM::get_expect_acc() {
     return this->_omega * (1 - std::pow(this->vehicle->v / this->_v0, _delta));
 }
 
-void CFM_IDM::_update_dynamic() {
+double CFM_IDM::_update_dynamic() {
 
 }
 
@@ -100,7 +93,8 @@ std::vector<double> CFM_IDM::equilibrium_state(double speed, double dhw, double 
     double k = 1 / dhw;
     double v = speed;
     double q = k * v;
-    return {k, q, v};
+    std::vector<double> result = {k, q, v};
+    return result;
 }
 
 /**

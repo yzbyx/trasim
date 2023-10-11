@@ -18,12 +18,14 @@ namespace RANDOM {
 
 enum class CFM {
     IDM,
+    Gipps,
     DUMMY,
-    NONE
+    NONE,
 };
 
 const std::vector<CFM> ALL_CFM = {
         CFM::IDM,
+        CFM::Gipps,
         CFM::DUMMY,
         CFM::NONE
 };
@@ -49,11 +51,13 @@ const std::vector<LCM> ALL_LCM = {
 enum class C_Info {
     lane_add_num,
     id,
+    leader_id,
     step,
     time,
     a,
     v,
     x,
+    l,
     dhw,
     thw,
     gap,
@@ -71,11 +75,13 @@ enum class C_Info {
 const std::vector<C_Info> ALL_C_INFO = {
         C_Info::lane_add_num,
         C_Info::id,
+        C_Info::leader_id,
         C_Info::step,
         C_Info::time,
         C_Info::a,
         C_Info::v,
         C_Info::x,
+        C_Info::l,
         C_Info::dhw,
         C_Info::thw,
         C_Info::gap,
@@ -92,20 +98,22 @@ const std::vector<C_Info> ALL_C_INFO = {
 };
 
 const std::map<C_Info, std::string> ALL_C_INFO_2_STRING = {
-        {C_Info::lane_add_num,  "Lane Add Num"},
-        {C_Info::id,            "ID"},
-        {C_Info::step,          "Step"},
-        {C_Info::time,          "Time [s]"},
-        {C_Info::a,             "Acceleration [m/s^2]"},
-        {C_Info::v,             "Velocity [m/s]"},
-        {C_Info::x,             "Position [m]"},
-        {C_Info::dhw,           "Distance Headway [m]"},
-        {C_Info::thw,           "Time Headway [s]"},
-        {C_Info::gap,           "Gap [m]"},
-        {C_Info::dv,            "Dv [m/s]"},
+        {C_Info::lane_add_num,  "Lane_ID"},
+        {C_Info::id,            "v_ID"},
+        {C_Info::leader_id,     "Preceding_ID"},
+        {C_Info::step,          "Frame_ID"},
+        {C_Info::time,          "Time"},
+        {C_Info::a,             "Local_xAcc"},
+        {C_Info::v,             "Local_xVelocity"},
+        {C_Info::x,             "Local_X"},
+        {C_Info::l,             "v_Length"},
+        {C_Info::dhw,           "dhw"},
+        {C_Info::thw,           "thw"},
+        {C_Info::gap,           "gap"},
+        {C_Info::dv,            "dv"},
         {C_Info::cf_id,         "cf model ID"},
         {C_Info::lc_id,         "lc model ID"},
-        {C_Info::car_type,      "car type"},
+        {C_Info::car_type,      "v_Class"},
         {C_Info::safe_ttc,      "ttc (s)"},
         {C_Info::safe_tet,      "tet"},
         {C_Info::safe_tit,      "tit (s)"},

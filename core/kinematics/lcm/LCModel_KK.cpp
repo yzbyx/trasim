@@ -18,13 +18,14 @@ const std::map<std::string, double> LCModel_KK::default_f_param = {
         {"delta_vr_1",   10.}
 };
 
-LCModel_KK::LCModel_KK(Vehicle *vehicle, const std::map<std::string, double> &l_param_)
+LCModel_KK::LCModel_KK(const std::shared_ptr<Vehicle>& vehicle, const std::map<std::string, double> &l_param_)
         : LCModel(vehicle) {
     this->name = LCM::KK;
     this->thesis = "Physics of Automated-Driving Vehicular Traffic";
 
     param_update(default_f_param);
     param_update(l_param_);
+
     this->_a_0 = vehicle->cf_model->get_expect_acc();
     param_map["delta_1"] = 2 * _a_0 * vehicle->lane->dt;
     this->_delta_1 = param_map["delta_1"];
@@ -44,32 +45,31 @@ LCModel_KK::LCModel_KK(Vehicle *vehicle, const std::map<std::string, double> &l_
     this->right_lane = nullptr;
 }
 
-void LCModel_KK::_update_dynamic() {
-    if (this->vehicle->lane->is_circle) {
-        throw std::runtime_error("This lane change model may have errors on the circular boundary(due to 'xm').");
-    }
+double LCModel_KK::_update_dynamic() {
     this->lane = this->vehicle->lane;
     this->dt = this->lane->dt;
 }
 
-std::tuple<LaneAbstract *, double, double, double>
-LCModel_KK::step(int index, LaneAbstract* left_lane_, LaneAbstract* right_lane_) {
+std::tuple<std::shared_ptr<LaneAbstract>, double, double, double>
+LCModel_KK::step(int index, std::shared_ptr<LaneAbstract> left_lane_, std::shared_ptr<LaneAbstract> right_lane_) {
     left_lane = left_lane_;
     right_lane = right_lane_;
     _update_dynamic();
 
     std::vector<SECTION_TYPE> type_ = vehicle->section_type;
+    // 判断车道类型
     if (std::find(type_.begin(), type_.end(), SECTION_TYPE::BASE) != type_.end()) {
         return base_cal();
     } else if (std::find(type_.begin(), type_.end(), SECTION_TYPE::ON_RAMP) != type_.end()) {
         return on_ramp_cal();
     } else {
         // You need to define TrasimError and handle the error condition here
-        throw std::runtime_error("There is no corresponding processing function!");
+        std::cout << "There is no corresponding processing function!";
+//        throw std::runtime_error("There is no corresponding processing function!");
     }
 }
 
-std::tuple<LaneAbstract *, double, double, double>
+std::tuple<std::shared_ptr<LaneAbstract>, double, double, double>
 LCModel_KK::base_cal() {
     if (this->vehicle->leader == nullptr) {
         return {vehicle->lane, vehicle->x, vehicle->v, vehicle->a};
@@ -87,8 +87,8 @@ LCModel_KK::base_cal() {
 
     // 判断是否选择左转
     if (this->left_lane != nullptr) {
-        Vehicle *left_f;
-        Vehicle *left_l;
+        std::shared_ptr<Vehicle> left_f;
+        std::shared_ptr<Vehicle> left_l;
         std::tie(left_f, left_l) = this->left_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         std::tie(safe_, left_d_l) = this->safe_check(left_f, left_l);
@@ -105,8 +105,8 @@ LCModel_KK::base_cal() {
 
     // 判断是否选择右转
     if (this->right_lane != nullptr) {
-        Vehicle *right_f;
-        Vehicle *right_l;
+        std::shared_ptr<Vehicle> right_f;
+        std::shared_ptr<Vehicle> right_l;
         std::tie(right_f, right_l) = this->right_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         std::tie(safe_, right_d_l) = this->safe_check(right_f, right_l);
@@ -124,7 +124,7 @@ LCModel_KK::base_cal() {
     // 概率选择是否换道
     if (left_ || right_) {
         if (RANDOM::DIS12(RANDOM::LCM_RND) < this->_p_0) {
-            LaneAbstract* direct = nullptr;
+            std::shared_ptr<LaneAbstract> direct = nullptr;
             if (left_ && right_) {
                 direct = left_d_l > right_d_l ? left_lane : right_lane;
             } else if (left_) {
@@ -139,7 +139,7 @@ LCModel_KK::base_cal() {
     return {vehicle->lane, vehicle->x, vehicle->v, vehicle->a};
 }
 
-std::tuple<bool, double> LCModel_KK::safe_check(Vehicle *_f, Vehicle *_l) {
+std::tuple<bool, double> LCModel_KK::safe_check(const std::shared_ptr<Vehicle>& _f, const std::shared_ptr<Vehicle>& _l) {
     double d_l, D_ahead, d_f, D_behind;
     bool head_safe, behind_safe;
 
@@ -163,11 +163,11 @@ std::tuple<bool, double> LCModel_KK::safe_check(Vehicle *_f, Vehicle *_l) {
     return {head_safe && behind_safe, d_l};
 }
 
-std::tuple<LaneAbstract *, double, double, double> LCModel_KK::on_ramp_cal() {
+std::tuple<std::shared_ptr<LaneAbstract>, double, double, double> LCModel_KK::on_ramp_cal() {
     // 限制仅向左换道
     if (this->left_lane != nullptr) {
-        Vehicle *_f;
-        Vehicle *_l;
+        std::shared_ptr<Vehicle> _f;
+        std::shared_ptr<Vehicle> _l;
         std::tie(_f, _l) = this->left_lane->get_relative_car(this->vehicle->x);
         bool safe_;
         double left_d_l, v_hat, x;
@@ -180,7 +180,8 @@ std::tuple<LaneAbstract *, double, double, double> LCModel_KK::on_ramp_cal() {
     return {vehicle->lane, vehicle->x, vehicle->v, vehicle->a};
 }
 
-std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(Vehicle *_f, Vehicle *_l) {
+std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(const std::shared_ptr<Vehicle>& _f,
+                                                                        const std::shared_ptr<Vehicle>& _l) {
     bool head_safe = false;
     double D_ahead, d_l, v_hat;
     double x = this->vehicle->x;
@@ -232,7 +233,9 @@ std::tuple<bool, double, double, double> LCModel_KK::safe_check_on_ramp(Vehicle 
  * @return
  */
 std::tuple<double, bool, double, double>
-LCModel_KK::safe_func_on_ramp_common(Vehicle *follower, Vehicle *leader, double v_hat) const {
+LCModel_KK::safe_func_on_ramp_common(const std::shared_ptr<Vehicle>& follower,
+                                     const std::shared_ptr<Vehicle>& leader,
+                                     double v_hat) const {
     double d_l = -leader->get_dist(follower->x) - leader->length;
     double D;
     if (std::isnan(v_hat)) {

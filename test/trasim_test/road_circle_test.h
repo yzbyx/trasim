@@ -1,13 +1,18 @@
+//
+// Created by yzbyx on 2023/8/30.
+//
+
+#ifndef TRASIM_ROAD_CIRCLE_TEST_H
+#define TRASIM_ROAD_CIRCLE_TEST_H
+
+
 #include <string>
 #include <map>
 #include "../../core/frame/micro/Road.h"
 #include "../../util/saver.h"
 #include "../../util/timer.h"
 
-//
-// Created by yzbyx on 2023/7/23.
-//
-int road_test() {
+int road_circle_test() {
     auto beforeTime = std::chrono::steady_clock::now();
 
     std::map<std::string, double> _cf_param = {{"lambda",           0.8},
@@ -25,50 +30,26 @@ int road_test() {
     int sim_step = warm_up_step + static_cast<int>(120 * 6 / dt);
     int offset_step = static_cast<int>(120 * 2 / dt);
 
+    bool is_circle = true;
     int road_length = 5000;
     int lane_num = 2;
     double v_length = 7.5;
 
     Road sim(road_length);
-    std::vector<std::shared_ptr<LaneAbstract>> lanes = sim.add_lanes(lane_num, false, {});
+    std::vector<std::shared_ptr<LaneAbstract>> lanes = sim.add_lanes(lane_num, is_circle, {});
     for (int i = 0; i < lane_num; i++) {
-        if (i != lane_num - 1) {
-            lanes[i]->set_speed_limit(30);
-        } else {
-            lanes[i]->set_speed_limit(22.2);
-        }
-
-        if (i == lane_num - 2) {
-            lanes[i]->set_section_type(SECTION_TYPE::BASE);
-            lanes[i]->set_control_type(CONTROL_TYPE::NO_RIGHT);
-        }
-        if (i == lane_num - 1) {
-            lanes[i]->set_section_type(SECTION_TYPE::ON_RAMP, 2000, -1);
-            lanes[i]->set_control_type(CONTROL_TYPE::NO_LEFT, 0, 2000);
-            lanes[i]->set_section_type(SECTION_TYPE::BASE, 0, 2000);
-            lanes[i]->set_block(2300);
-        } else {
-            // lanes[i].car_load();
-        }
+        lanes[i]->set_speed_limit(30);
 
         lanes[i]->car_config(60, v_length, VType::PASSENGER,
                              lanes[i]->get_speed_limit(0, VType::PASSENGER),
                              false,
                              CFM::IDM, _cf_param, {}, LCM::KK, {});
-//        lanes[i]->car_config(60, v_length, VType::PASSENGER,
-//                             lanes[i]->get_speed_limit(0, VType::PASSENGER), false,
-//                             CFM::IDM, _cf_param, {}, LCM::KK, {});
+        lanes[i]->car_load();
 
         lanes[i]->data_container->config({}, true);
-
-        if (i != lane_num - 1) {
-            lanes[i]->car_loader(2000, THW_DISTRIBUTION::Uniform, 0, 0);
-        } else {
-            lanes[i]->car_loader(400, THW_DISTRIBUTION::Uniform, 400, 0);
-        }
     }
 
-    sim.run_config(true, false, dt, sim_step, 30, warm_up_step);
+    sim.run_config(true, true, dt, sim_step, 30, warm_up_step);
 
     for (auto &&[step, stage]: sim) {
         // 当前step的跟驰计算，只有在下一个step才会更新到车辆状态中
@@ -86,7 +67,7 @@ int road_test() {
     auto temp = sim.get_road_total_data();
     std::cout << "data collection completed" << std::endl;
 
-    save_data_to_txt("test_cplusplus.txt", temp);
+    save_data_to_txt("D:\\test_cplusplus.txt", temp);
     std::cout << "data saved" << std::endl;
 
     auto afterTime = std::chrono::steady_clock::now();
@@ -95,3 +76,6 @@ int road_test() {
 
     return 0;
 }
+
+
+#endif //TRASIM_ROAD_CIRCLE_TEST_H

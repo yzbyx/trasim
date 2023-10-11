@@ -2,16 +2,18 @@
 // Created by yzbyx on 2023/7/21.
 //
 #include "CFModel.h"
+
+#include <utility>
 #include "../../Vehicle.h"
 #include "CFM_IDM.h"
 #include "CFM_Dummy.h"
 #include "../../frame/micro/LaneAbstract.h"
 
 
-CFModel::CFModel(Vehicle * vehicle_) : Model() {
+CFModel::CFModel(std::shared_ptr<Vehicle> vehicle_) : Model() {
     name = CFM::NONE;
     random = & RANDOM::CFM_RND;
-    vehicle = vehicle_;
+    vehicle = std::move(vehicle_);
 }
 
 double CFModel::get_speed_limit() {
@@ -47,12 +49,14 @@ double CFModel::get_expect_acc() {
 
 CFModel::~CFModel() = default;
 
-CFModel* get_cf_model(Vehicle* _driver, CFM name, const std::map<std::string, double> &param) {
+std::shared_ptr<CFModel> get_cf_model(const std::shared_ptr<Vehicle>& _driver,
+                                      CFM name,
+                                      const std::map<std::string, double> &param) {
     if (name == CFM::IDM) {
-        CFModel *cf = new CFM_IDM(_driver, param);
+        auto cf = std::make_shared<CFM_IDM>(_driver, param);
         return cf;
     } else if (name == CFM::DUMMY) {
-        return new CFM_Dummy(_driver, param);
+        return std::make_shared<CFM_Dummy>(_driver, param);
     } else {
         throw;
     }

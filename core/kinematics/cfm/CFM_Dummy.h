@@ -12,7 +12,7 @@ class Vehicle;
 
 class CFM_Dummy : public CFModel {
 public:
-    CFM_Dummy(Vehicle *vehicle_, const std::map<std::string, double> &f_param);
+    CFM_Dummy(std::shared_ptr<Vehicle> vehicle_, const std::map<std::string, double> &f_param);
 
     double get_expect_dec() override;
 
@@ -20,7 +20,7 @@ public:
 
     double get_expect_speed() override;
 
-    void _update_dynamic() override;
+    double _update_dynamic() override;
 
     double step(int index) override;
 };

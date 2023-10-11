@@ -3,27 +3,45 @@ project(trasim)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -g")
 
 IF (WIN32)
     MESSAGE(STATUS "Now is windows")
     set(SFML_DIR "lib/SFML/lib/cmake/SFML")
+
 ELSEIF (APPLE)
     MESSAGE(STATUS "Now is Apple systens.")
 ELSEIF (UNIX)
     MESSAGE(STATUS "Now is UNIX-like OS's.")
-#    set(SFML_DIR "lib/SFML-2.6.0-linux/lib/cmake/SFML")
 ENDIF ()
 
-add_executable(trasim test/trasim_test/road_test.h core/Vehicle.cpp core/kinematics/cfm/CFM_Dummy.cpp core/kinematics/cfm/CFM_Dummy.h core/kinematics/cfm/CFModel.h core/kinematics/Model.h core/kinematics/cfm/CFM_IDM.cpp core/kinematics/cfm/CFM_IDM.h core/kinematics/Model.cpp core/frame/micro/LaneAbstract.cpp core/frame/micro/LaneAbstract.h core/kinematics/lcm/LCModel.cpp core/kinematics/lcm/LCModel.h core/Constants.h core/Obstacle.cpp core/kinematics/cfm/CFModel.cpp core/frame/micro/Road.cpp core/frame/micro/Road.h core/data/DataContainer.cpp core/data/DataContainer.h core/data/DataProcessor.cpp core/data/DataProcessor.h core/kinematics/lcm/LCModel_KK.cpp core/kinematics/lcm/LCModel_KK.h test/cpp_test/base.cpp test/cpp_test/base.h test/cpp_test/child.cpp test/cpp_test/child.h core/frame/micro/LaneCircle.cpp core/frame/micro/LaneCircle.h core/frame/micro/LaneOpen.cpp core/frame/micro/LaneOpen.h util/timer.cpp util/timer.h util/saver.cpp util/saver.h ui/UI.cpp ui/UI.h
+add_executable(trasim
+        test/trasim_test/road_test.h core/Vehicle.cpp core/kinematics/cfm/CFM_Dummy.cpp core/kinematics/cfm/CFM_Dummy.h core/kinematics/cfm/CFModel.h core/kinematics/Model.h core/kinematics/cfm/CFM_IDM.cpp core/kinematics/cfm/CFM_IDM.h core/kinematics/Model.cpp core/frame/micro/LaneAbstract.cpp core/frame/micro/LaneAbstract.h core/kinematics/lcm/LCModel.cpp core/kinematics/lcm/LCModel.h core/Constants.h core/Obstacle.cpp core/kinematics/cfm/CFModel.cpp core/frame/micro/Road.cpp core/frame/micro/Road.h core/data/DataContainer.cpp core/data/DataContainer.h core/data/DataProcessor.cpp core/data/DataProcessor.h core/kinematics/lcm/LCModel_KK.cpp core/kinematics/lcm/LCModel_KK.h test/cpp_test/base.cpp test/cpp_test/base.h test/cpp_test/child.cpp test/cpp_test/child.h core/frame/micro/LaneCircle.cpp core/frame/micro/LaneCircle.h core/frame/micro/LaneOpen.cpp core/frame/micro/LaneOpen.h util/timer.cpp util/timer.h util/saver.cpp util/saver.h ui/UI.cpp ui/UI.h
         util/print.cpp
         util/print.h
         test/trasim_test/lane_test.h
         test/trasim_test/test.cpp
-        test/trasim_test/test.cpp)
+        test/trasim_test/road_circle_test.h
+        lib/gnuplot_i.hpp
+        lib/csv.hpp
+        core/SimManager.cpp
+        core/SimManager.h
+        core/frame/network/Lane.cpp
+        core/frame/network/Lane.h
+        core/frame/network/Lane.h
+        core/frame/network/Node.cpp
+        core/frame/network/Node.h
+        core/kinematics/cfm/CFM_Gipps.cpp
+        core/kinematics/cfm/CFM_Gipps.h)
 
+#add_subdirectory(lib/pybind11)
+#pybind11_add_module(trasim core/PyTrasim.cpp)
+#target_compile_features(trasim PUBLIC cxx_std_17)
+
+# Find SFML
 find_package(SFML COMPONENTS graphics window system audio)
 if (NOT SFML_FOUND)
+    message("Please ues command: 'sudo apt-get install libsfml-dev'")
     message(FATAL_ERROR "SFML NOT FOUND!")
 else()
     message(STATUS "SFML FOUND!")

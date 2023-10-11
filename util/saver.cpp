@@ -3,9 +3,9 @@
 //
 
 #include <fstream>
+#include <sstream>
 #include "saver.h"
 #include "print.h"
-
 
 void save_data_to_txt(const std::string &path_, const std::map<C_Info, std::vector<double>>& data) {
     std::ofstream file(path_, std::ios::out);
@@ -13,21 +13,25 @@ void save_data_to_txt(const std::string &path_, const std::map<C_Info, std::vect
 
     // 打印header
     std::vector<std::string> headers;
+    size_t num_rows = -1;
     for (const auto& pair : data) {
-        headers.push_back(ALL_C_INFO_2_STRING.at(pair.first));
+        file << ALL_C_INFO_2_STRING.at(pair.first) << "\t";
+//        headers.push_back(ALL_C_INFO_2_STRING.at(pair.first));
         pure_data.push_back(const_cast<std::vector<double>*>(&pair.second));
+        if (num_rows == -1) {
+            num_rows = pair.second.size();
+        }
     }
-    file << add_sep(headers, "\t") + "\n";
+    file << "\n";
 
     // 逐行打印数据
-    size_t num_rows = pure_data[0]->size();
 
     for (size_t row = 0; row < num_rows; ++row) {
-        std::vector<double> temp;
         for (const auto& vec_ptr : pure_data) {
-            temp.push_back((*vec_ptr)[row]);
+            file << (*vec_ptr)[row] << "\t";
+//            temp.push_back((*vec_ptr)[row]);
         }
-        file << add_sep(temp, "\t") + "\n";
+        file << "\n";
     }
 
     file.close();

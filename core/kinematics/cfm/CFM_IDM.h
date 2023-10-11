@@ -13,7 +13,7 @@ class Vehicle;
 
 class CFM_IDM : public CFModel {
 public:
-    CFM_IDM(Vehicle* vehicle, const std::map<std::string, double>& f_param);
+    CFM_IDM(std::shared_ptr<Vehicle> vehicle_, const std::map<std::string, double>& f_param_);
     ~ CFM_IDM() override;
 
     double get_expect_dec() override;
@@ -22,7 +22,7 @@ public:
 
     double get_expect_speed() override;
 
-    void _update_dynamic() override;
+    double _update_dynamic() override;
 
     static const std::map<std::string, double> default_f_param;
 

@@ -8,6 +8,7 @@
 #include <string>
 #include <iostream>
 #include <map>
+#include <memory>
 
 class Vehicle;
 
@@ -16,11 +17,11 @@ public:
     Model();
     virtual ~Model();
 
-    virtual void _update_dynamic() = 0;
+    virtual double _update_dynamic() = 0;
 
     void param_update(const std::map<std::string, double>& param);
 
-    Vehicle* vehicle;
+    std::shared_ptr<Vehicle> vehicle;
     std::string thesis;
     double dt;
     std::map<std::string, double> param_map;

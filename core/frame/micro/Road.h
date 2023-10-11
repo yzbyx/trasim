@@ -20,7 +20,7 @@ class DataProcessor;
 
 struct VehicleData;
 
-class Road {
+class Road: public std::enable_shared_from_this<Road> {
 public:
     explicit Road(double length = 1000, int id = 0);
 
@@ -30,7 +30,7 @@ public:
 
     int ID;
     double lane_length;
-    std::vector<LaneAbstract *> lane_list;
+    std::vector<std::shared_ptr<LaneAbstract>> lane_list;
     int id_accumulate;
 
     int step_;
@@ -40,10 +40,10 @@ public:
 
     bool has_ui;
     int frame_rate;
-    UI *ui;
+    std::shared_ptr<UI> ui;
 
     std::map<C_Info, std::vector<double>> road_total_data;
-    DataProcessor *data_processor;
+    std::shared_ptr<DataProcessor> data_processor;
 
     /**
      * 需要一次性完成配置
@@ -53,9 +53,9 @@ public:
      * @param real_index
      * @return
      */
-    std::vector<LaneAbstract *> add_lanes(int lane_num, bool is_circle, const std::vector<int> &real_index);
+    std::vector<std::shared_ptr<LaneAbstract>> add_lanes(int lane_num, bool is_circle, const std::vector<int> &real_index);
 
-    static void step_lane_change(LaneAbstract *lane);
+    static void step_lane_change(const std::shared_ptr<LaneAbstract>& lane);
 
     /**
      * 检查以及修正换道模型提供的位置
@@ -64,10 +64,10 @@ public:
      * @param car
      * @return 是否满足换道条件（取决于是否之前有车换到了同一个空档内）
      */
-    static bool check_and_correct_lc_pos(LaneAbstract *target_lane, Vehicle *car_lc_last, Vehicle *car);
+    static bool check_and_correct_lc_pos(const std::shared_ptr<LaneAbstract>& target_lane, const std::shared_ptr<Vehicle>& car_lc_last, const std::shared_ptr<Vehicle>& car);
 
-    static std::tuple<LaneAbstract *, LaneAbstract *, std::vector<SECTION_TYPE>>
-    get_available_adjacent_lane(LaneAbstract *lane, double pos, VType car_type);
+    static std::tuple<std::shared_ptr<LaneAbstract>, std::shared_ptr<LaneAbstract>, std::vector<SECTION_TYPE>>
+    get_available_adjacent_lane(const std::shared_ptr<LaneAbstract>& lane, double pos, VType car_type);
 
     double get_car_info(int car_id, C_Info info, int lane_add_num = -1);
 
@@ -126,12 +126,12 @@ public:
 
     std::map<C_Info, std::vector<double>> &get_road_total_data();
 
-    void lc_take_over(int car_id, const std::tuple<LaneAbstract *, double, double, double> &lc_result);
+    void lc_take_over(int car_id, const std::tuple<std::shared_ptr<LaneAbstract>, double, double, double> &lc_result);
 
     /**
      * 将换道模型结果更新到场景
      */
-    static void update_lc_state(LaneAbstract *lane);
+    static void update_lc_state(const std::shared_ptr<LaneAbstract>& lane);
 
     int get_car_num_on_road();
 };

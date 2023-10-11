@@ -4,22 +4,24 @@
 
 #include "LCModel.h"
 #include <random>
-#include "../Model.h"
-#include "../../Constants.h"
+#include <memory>
+#include <utility>
 #include "LCModel_KK.h"
-//#include "LCModel_ACC.h"
 
 
-LCModel::LCModel(Vehicle* vehicle_) : Model() {
+LCModel::LCModel(std::shared_ptr<Vehicle> vehicle_) : Model() {
     name = LCM::NONE;
-    vehicle = vehicle_;
+    vehicle = std::move(vehicle_);
     random = & RANDOM::LCM_RND;
     last_lc_time = - std::numeric_limits<double>::infinity();
 }
 
-LCModel* get_lc_model(Vehicle* _driver, LCM name, const std::map<std::string, double>& param) {
+std::shared_ptr<LCModel> get_lc_model(const std::shared_ptr<Vehicle>& _driver,
+                                      LCM name,
+                                      const std::map<std::string, double>& param) {
     if (name == LCM::KK) {
-        return new LCModel_KK(_driver, param);
+        auto lc = std::make_shared<LCModel_KK>(_driver, param);
+        return lc;
     }
     else if (name == LCM::ACC) {
 //        return new LCModel_ACC(_driver, param);

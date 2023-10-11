@@ -3,6 +3,8 @@
 //
 
 #include "CFM_Dummy.h"
+
+#include <utility>
 #include "../../Vehicle.h"
 
 double CFM_Dummy::get_expect_dec() {
@@ -17,7 +19,7 @@ double CFM_Dummy::get_expect_speed() {
     return 0.;
 }
 
-void CFM_Dummy::_update_dynamic() {
+double CFM_Dummy::_update_dynamic() {
 
 }
 
@@ -25,8 +27,8 @@ double CFM_Dummy::step(int index) {
     return 0;
 }
 
-CFM_Dummy::CFM_Dummy(Vehicle *vehicle_, const std::map<std::string, double> &f_param)
-        : CFModel(vehicle_) {
+CFM_Dummy::CFM_Dummy(std::shared_ptr<Vehicle> vehicle_, const std::map<std::string, double> &f_param)
+        : CFModel(std::move(vehicle_)) {
     name = CFM::DUMMY;
     thesis = "None";
 }

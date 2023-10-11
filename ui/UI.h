@@ -19,14 +19,14 @@ class Road;
 class UI {
 public:
     ~UI();
-    explicit UI(Road* frame_abstract);
+    explicit UI(std::shared_ptr<Road> frame_abstract);
 
     void ui_init(const std::string& caption, int frame_rate);
     void ui_update();
 
-    sf::RenderWindow* screen;
+    std::shared_ptr<sf::RenderWindow> screen;
 
-    Road* frame;
+    std::shared_ptr<Road> frame;
     int frame_rate;
     int width_base;
     double width_scale;
@@ -39,7 +39,7 @@ public:
     int start_y;
     sf::Text text;
     sf::Font font;
-    std::vector<LaneAbstract*> lane_list; // 使用std::vector存储lane_list，要确保LaneAbstract类的定义在此之前
+    std::vector<std::shared_ptr<LaneAbstract>> lane_list; // 使用std::vector存储lane_list，要确保LaneAbstract类的定义在此之前
     std::unique_ptr<sf::Clock> clock;
 };
 

@@ -20,7 +20,7 @@ class Road;
 
 class VehicleData;
 
-class LaneAbstract {
+class LaneAbstract: public std::enable_shared_from_this<LaneAbstract> {
 public:
     std::string ID;
     /**
@@ -31,9 +31,9 @@ public:
      * 车道添加的次序
      */
     int add_num;
-    Road *road{};
-    std::vector<LaneAbstract *> left_neighbour_lanes;
-    std::vector<LaneAbstract *> right_neighbour_lanes;
+    std::shared_ptr<Road> road{};
+    std::vector<std::shared_ptr<LaneAbstract>> left_neighbour_lanes;
+    std::vector<std::shared_ptr<LaneAbstract>> right_neighbour_lanes;
 
     double default_speed_limit;
     int car_num_total;
@@ -64,9 +64,9 @@ public:
     std::vector<LCM> lc_name_list;
     std::vector<std::map<std::string, double>> lc_param_list;
 
-    std::vector<Vehicle *> car_list;
-    std::vector<Vehicle *> dummy_car_list;
-    std::vector<Vehicle *> out_car_has_data;
+    std::vector<std::shared_ptr<Vehicle>> car_list;
+    std::vector<std::shared_ptr<Vehicle>> dummy_car_list;
+    std::vector<std::shared_ptr<Vehicle>> out_car_has_data;
 
     int step_;
     double time_;
@@ -79,8 +79,8 @@ public:
     int sim_step;
 
     bool data_save;
-    DataContainer *data_container;
-    DataProcessor *data_processor{};
+    std::shared_ptr<DataContainer> data_container;
+    std::shared_ptr<DataProcessor> data_processor{};
 
     explicit LaneAbstract(double lane_length_ = 1000, double speed_limit_ = 30);
 
@@ -121,7 +121,7 @@ public:
 
     void run_third_part();
 
-    void car_state_update_common(Vehicle *car);
+    void car_state_update_common(const std::shared_ptr<Vehicle>& car);
 
     virtual void update_state() = 0;
 
@@ -144,35 +144,35 @@ public:
     [[nodiscard]] int
     get_appropriate_car() const;
 
-    std::pair<Vehicle *, Vehicle *>
+    std::pair<std::shared_ptr<Vehicle>, std::shared_ptr<Vehicle>>
     get_relative_car(double pos);
 
     void
-    car_remove(Vehicle *car, bool put_out_car_has_data, bool is_lc);
+    car_remove(const std::shared_ptr<Vehicle>& car, bool put_out_car_has_data, bool is_lc);
 
     bool
-    car_insert_by_instance(Vehicle *car, bool is_dummy);
+    car_insert_by_instance(const std::shared_ptr<Vehicle>& car, bool is_dummy);
 
     [[nodiscard]] double
     get_car_info(int id_, C_Info info_name) const;
 
-    Vehicle *
+    std::shared_ptr<Vehicle>
     make_dummy_car(double pos);
 
-    Vehicle *
+    std::shared_ptr<Vehicle>
     get_car(int id_);
 
     int
     get_relative_id(int id_, int offset);
 
-    Vehicle *
+    std::shared_ptr<Vehicle>
     get_relative_car_by_id(int id_, int offset);
 
     void
     car_param_update(int id_, std::map<std::string, double> &cf_param, std::map<std::string, double> &lc_param,
                      std::map<std::string, double> &car_param);
 
-    Vehicle *
+    std::shared_ptr<Vehicle>
     make_car(VehicleData &data);
 
     int

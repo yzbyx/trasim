@@ -21,7 +21,7 @@ public:
 
     ~CFModel() override;
 
-    explicit CFModel(Vehicle *vehicle_);
+    explicit CFModel(std::shared_ptr<Vehicle> vehicle_);
 
     virtual double step(int index) = 0;
 
@@ -49,6 +49,6 @@ public:
     double get_speed_limit();
 };
 
-CFModel *get_cf_model(Vehicle *_driver, CFM name, const std::map<std::string, double> &param);
+std::shared_ptr<CFModel> get_cf_model(const std::shared_ptr<Vehicle>& _driver, CFM name, const std::map<std::string, double> &param);
 
 #endif //TRASIM_CFMODEL_H

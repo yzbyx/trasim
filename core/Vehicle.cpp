@@ -8,12 +8,12 @@
 #include "frame/micro/LaneAbstract.h"
 
 
-Vehicle::Vehicle(LaneAbstract *lane_, VType type_, int id_, double length_) : Obstacle(type_) {
+Vehicle::Vehicle(std::shared_ptr<LaneAbstract> lane_, VType type_, int id_, double length_) : Obstacle(type_) {
     ID = id_;
     width = 2;
 
     length = length_;
-    lane = lane_;
+    lane = std::move(lane_);
 
     leader = follower = nullptr;
 
@@ -33,21 +33,21 @@ Vehicle::Vehicle(LaneAbstract *lane_, VType type_, int id_, double length_) : Ob
 }
 
 void Vehicle::set_cf_model(CFM cf_name, const std::map<std::string, double> &cf_param) {
-    cf_model = get_cf_model(this, cf_name, cf_param);
+    cf_model = get_cf_model(shared_from_this(), cf_name, cf_param);
 }
 
 void Vehicle::set_lc_model(LCM lc_name, const std::map<std::string, double> &lc_param) {
-    lc_model = get_lc_model(this, lc_name, lc_param);
+    lc_model = get_lc_model(shared_from_this(), lc_name, lc_param);
 }
 
 void Vehicle::step(int index) {
     cf_acc = cf_model->step(index);
 }
 
-void Vehicle::step_lane_change(int index, LaneAbstract *left_lane, LaneAbstract *right_lane,
+void Vehicle::step_lane_change(int index, std::shared_ptr<LaneAbstract> left_lane, std::shared_ptr<LaneAbstract> right_lane,
                                std::vector<SECTION_TYPE> section_type_) {
     this->section_type = std::move(section_type_);
-    lc_result = lc_model->step(index, left_lane, right_lane);
+    lc_result = lc_model->step(index, std::move(left_lane), std::move(right_lane));
     lc_target_lane = std::get<0>(lc_result);
 }
 
@@ -79,6 +79,11 @@ std::vector<double> Vehicle::get_data_list(C_Info info) {
     } else if (info == C_Info::id) {
         std::vector<double> id_list(pos_list.size(), ID);
         return id_list;
+    } else if (info == C_Info::leader_id) {
+        return leader_id_list;
+    } else if (info == C_Info::l) {
+        std::vector<double> l_list(pos_list.size(), length);
+        return l_list;
     } else if (info == C_Info::car_type) {
         std::vector<double> type_list(pos_list.size(), static_cast<int>(type));
         return type_list;
@@ -140,6 +145,14 @@ void Vehicle::record() {
             case C_Info::lc_id:
                 break;
             case C_Info::car_type:
+                break;
+            case C_Info::leader_id:
+                if (leader != nullptr) {
+                    leader_id_list.push_back(leader->ID);
+                } else {
+                    leader_id_list.push_back(-1);
+                }
+            case C_Info::l:
                 break;
             case C_Info::a:
                 acc_list.push_back(a);

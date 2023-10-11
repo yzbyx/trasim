@@ -28,6 +28,7 @@ private:
     double next_car_time;
     int fail_summon_num;
     double offset_pos;
+
 };
 
 

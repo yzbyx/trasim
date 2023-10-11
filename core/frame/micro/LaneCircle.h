@@ -15,10 +15,10 @@ class LaneCircle : public LaneAbstract{
 
     void car_summon() override;
 
-    ~LaneCircle() override;
-
 public:
     explicit LaneCircle(double lane_length = 1000, double speed_limit_ = 30);
+
+    ~LaneCircle() override;
 };
 
 #endif //TRASIM_LANECIRCLE_H

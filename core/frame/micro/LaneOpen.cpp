@@ -53,7 +53,7 @@ void LaneOpen::car_summon() {
             throw std::runtime_error("Vehicle not configured, unable to generate!");
         }
         if (!this->car_list.empty()) {
-            Vehicle *first = this->car_list[0];
+            std::shared_ptr<Vehicle> first = this->car_list[0];
             if (first->x - first->length < 0) {
                 this->fail_summon_num++;
 //                std::cout << "Lane ID " << this->ID << " at step " << this->step_ << " summon car failed! "
@@ -78,8 +78,8 @@ void LaneOpen::car_summon() {
             return;
         }
 
-        auto *vehicle = new Vehicle(
-                this,
+        auto vehicle = std::make_shared<Vehicle>(
+                shared_from_this(),
                 this->car_type_list[pos],
                 this->get_new_car_id(),
                 this->car_length_list[pos]
@@ -92,8 +92,9 @@ void LaneOpen::car_summon() {
         if (initial_speed >= 0) {
             double min_speed = std::max(initial_speed - 0.5, 0.0);
             double max_speed = initial_speed + 0.5;
-            double speed = this->speed_with_random_list[pos] ? (RANDOM::DIS12(RANDOM::RND)) * (max_speed - min_speed) +
-                                                               min_speed : initial_speed;
+            double speed = this->speed_with_random_list[pos] ?
+                           (RANDOM::DIS12(RANDOM::RND)) * (max_speed - min_speed) +
+                           min_speed : initial_speed;
             vehicle->v = speed;
         } else {
             if (initial_speed == -1) {
@@ -104,7 +105,7 @@ void LaneOpen::car_summon() {
                 }
             } else {
                 if (!this->car_list.empty()) {
-                    Vehicle *leader = this->car_list[0];
+                    std::shared_ptr<Vehicle> leader = this->car_list[0];
                     vehicle->v = leader->v;
                     double l_d = leader->dhw();
                     if (!std::isnan(l_d)) {
@@ -135,7 +136,7 @@ void LaneOpen::update_state() {
     for (auto &i: this->car_list) {
         this->car_state_update_common(i);
 
-        if (i->x > this->lane_length) {
+        if (i->x > lane_length) {
             i->is_run_out = true;
             this->car_remove(i, i->has_data(), false);
         }

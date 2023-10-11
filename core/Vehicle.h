@@ -27,19 +27,19 @@ struct VehicleData {
     std::map<std::string, double> &car_param;
 };
 
-class Vehicle : public Obstacle {
+class Vehicle: public Obstacle, public std::enable_shared_from_this<Vehicle> {
 public:
-    explicit Vehicle(LaneAbstract *lane_, VType type_, int id_, double length_);
+    explicit Vehicle(std::shared_ptr<LaneAbstract> lane_, VType type_, int id_, double length_);
 
     int ID;
-    LaneAbstract* lane;
+    std::shared_ptr<LaneAbstract> lane;
     /**
      * 是否驶出路外
      */
     bool is_run_out;
 
-    Vehicle* leader;
-    Vehicle* follower;
+    std::shared_ptr<Vehicle> leader;
+    std::shared_ptr<Vehicle> follower;
 
     double ttc_star;
     std::vector<double> lane_id_list;
@@ -58,31 +58,27 @@ public:
     std::vector<double> picud_list;
     std::vector<double> picud_KK_list;
 
-    CFModel* cf_model;
+    std::vector<double> leader_id_list;
+
+    std::shared_ptr<CFModel> cf_model;
     double cf_acc;
 
-    LCModel* lc_model;
+    std::shared_ptr<LCModel> lc_model;
     bool is_cf_take_over;
     bool is_lc_take_over;
-    std::tuple<LaneAbstract*, double, double, double> lc_result;
-    LaneAbstract* lc_target_lane;
-    /**
-     * 目标车道的前后车
-     */
-    std::pair<Vehicle*, Vehicle*> lc_f_l;
+    std::tuple<std::shared_ptr<LaneAbstract>, double, double, double> lc_result;
+    std::shared_ptr<LaneAbstract> lc_target_lane;
 
     std::vector<SECTION_TYPE> section_type;
 
-    int last_step_lc_status();
-
-    void set_cf_model(CFM cf_name, const std::map<std::string, double> &cf_param);
+    void set_cf_model(CFM cf_name, const std::map<std::string, double>& cf_param);
 
     void set_lc_model(LCM lc_name, const std::map<std::string, double>& lc_param);
 
     void step(int index);
 
-    void step_lane_change(int index, LaneAbstract *left_lane, LaneAbstract *right_lane,
-                          std::vector<SECTION_TYPE> section_type);
+    void step_lane_change(int index, std::shared_ptr<LaneAbstract> left_lane, std::shared_ptr<LaneAbstract> right_lane,
+                          std::vector<SECTION_TYPE> section_type_);
 
     /**
      * 获取pos与车头之间的距离，pos在前则正，在后则负，环形边界则以距离近者决定正负

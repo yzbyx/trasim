@@ -27,7 +27,8 @@ void LaneCircle::update_state() {
         }
     }
 
-    std::sort(this->car_list.begin(), this->car_list.end(), [](Vehicle* c1, Vehicle* c2) {
+    std::sort(this->car_list.begin(), this->car_list.end(),
+              [](const std::shared_ptr<Vehicle>& c1, const std::shared_ptr<Vehicle>& c2) {
         return c1->x < c2->x;
     });
 }

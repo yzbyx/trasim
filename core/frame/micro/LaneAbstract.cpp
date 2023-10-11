@@ -28,8 +28,6 @@ LaneAbstract::LaneAbstract(double lane_length_, double speed_limit_) {
     warm_up_step = -1;
     sim_step = -1;
     data_save = false;
-
-    data_container = new DataContainer(this);
 }
 
 int LaneAbstract::get_new_car_id() {
@@ -224,7 +222,7 @@ std::vector<int> LaneAbstract::car_load(float car_gap, int jam_num) {
 
     for (size_t index_ = 0; index_ < car_type_index_list.size(); ++index_) {
         int i = car_type_index_list[index_];
-        auto *vehicle = new Vehicle{this, this->car_type_list[i], this->get_new_car_id(), this->car_length_list[i]};
+        auto vehicle = std::make_shared<Vehicle>(std::shared_ptr<LaneAbstract>(this), this->car_type_list[i], this->get_new_car_id(), this->car_length_list[i]);
         vehicle->set_cf_model(this->cf_name_list[i], this->cf_param_list[i]);
         vehicle->set_lc_model(this->lc_name_list[i], this->lc_param_list[i]);
         if (this->car_initial_speed_list[i] < 0) {
@@ -294,6 +292,8 @@ void LaneAbstract::run_config(
         int sim_step_,
         bool force_speed_limit_
 ) {
+
+    data_container = std::make_shared<DataContainer>(shared_from_this());
     this->data_save = data_save_;
     this->warm_up_step = warm_up_step_;
     this->dt = dt_;
@@ -351,7 +351,7 @@ void LaneAbstract::run_third_part() {
     this->time_ += this->dt;
 }
 
-void LaneAbstract::car_state_update_common(Vehicle *car) {
+void LaneAbstract::car_state_update_common(const std::shared_ptr<Vehicle>& car) {
     double car_speed_before = car->v;
 
     if (this->state_update_method == UpdateMethod::Ballistic || this->state_update_method == UpdateMethod::Euler) {
@@ -403,8 +403,8 @@ void LaneAbstract::record() {
     }
 }
 
-Vehicle *LaneAbstract::make_dummy_car(double pos) {
-    auto *car = new Vehicle{this, VType::OBSTACLE, -1, 1e-5};
+std::shared_ptr<Vehicle> LaneAbstract::make_dummy_car(double pos) {
+    auto car = std::make_shared<Vehicle>(std::shared_ptr<LaneAbstract>(this), VType::OBSTACLE, -1, 1e-5);
     car->set_cf_model(CFM::DUMMY, std::map<std::string, double>{});
     car->x = pos + 1e-5;
     car->v = 0;
@@ -413,7 +413,7 @@ Vehicle *LaneAbstract::make_dummy_car(double pos) {
 }
 
 void LaneAbstract::set_block(double pos) {
-    Vehicle *dummy_car = make_dummy_car(pos);
+    auto dummy_car = make_dummy_car(pos);
     this->car_insert_by_instance(dummy_car, true);
 }
 
@@ -444,12 +444,12 @@ void LaneAbstract::take_over(int car_id, double acc_values) {
 }
 
 int LaneAbstract::car_insert(VehicleData &data) {
-    Vehicle *car = make_car(data);
+    auto car = make_car(data);
     this->car_insert_by_instance(car, false);
     return car->ID;
 }
 
-void LaneAbstract::car_remove(Vehicle *car, bool put_out_car_has_data, bool is_lc) {
+void LaneAbstract::car_remove(const std::shared_ptr<Vehicle>& car, bool put_out_car_has_data, bool is_lc) {
     this->car_list.erase(std::remove(this->car_list.begin(), this->car_list.end(), car), this->car_list.end());
     if (car->leader != nullptr) {
         car->leader->follower = car->follower;
@@ -460,15 +460,11 @@ void LaneAbstract::car_remove(Vehicle *car, bool put_out_car_has_data, bool is_l
 
     if (put_out_car_has_data) {
         this->out_car_has_data.push_back(car);
-    } else {
-        if (!is_lc) {
-            delete car;
-        }
     }
 }
 
-Vehicle *LaneAbstract::make_car(VehicleData &data) {
-    auto *car = new Vehicle{this, data.car_type, this->get_new_car_id(), data.car_length};
+std::shared_ptr<Vehicle> LaneAbstract::make_car(VehicleData &data) {
+    auto car = std::make_shared<Vehicle>(std::shared_ptr<LaneAbstract>(this), data.car_type, this->get_new_car_id(), data.car_length);
     car->set_cf_model(data.cf_name, data.cf_param);
     car->set_lc_model(data.lc_name, data.lc_param);
     car->set_car_param(const_cast<std::map<std::string, double> &>(data.car_param));
@@ -478,8 +474,8 @@ Vehicle *LaneAbstract::make_car(VehicleData &data) {
     return car;
 }
 
-bool LaneAbstract::car_insert_by_instance(Vehicle *car, bool is_dummy) {
-    car->lane = this;
+bool LaneAbstract::car_insert_by_instance(const std::shared_ptr<Vehicle>& car, bool is_dummy) {
+    car->lane = std::shared_ptr<LaneAbstract>(this);
     car->leader = car->follower = nullptr;
     if (!this->car_list.empty()) {
         std::vector<double> pos_list;
@@ -491,7 +487,7 @@ bool LaneAbstract::car_insert_by_instance(Vehicle *car, bool is_dummy) {
         auto it = std::upper_bound(pos_list.begin(), pos_list.end(), car->x);
         long long int index_ = std::distance(pos_list.begin(), it);
 
-        Vehicle *follower;
+        std::shared_ptr<Vehicle> follower;
         if (index_ != 0) {
             follower = this->car_list[index_ - 1];
         } else {
@@ -503,7 +499,7 @@ bool LaneAbstract::car_insert_by_instance(Vehicle *car, bool is_dummy) {
         }
 
         if (follower != nullptr) {
-            Vehicle *leader = follower->leader;
+            std::shared_ptr<Vehicle> leader = follower->leader;
 
             follower->leader = car;
             car->follower = follower;
@@ -528,7 +524,7 @@ bool LaneAbstract::car_insert_by_instance(Vehicle *car, bool is_dummy) {
 }
 
 double LaneAbstract::get_car_info(int id_, C_Info info_name) const {
-    for (auto car: this->car_list) {
+    for (const auto& car: this->car_list) {
         if (car->ID == id_) {
             if (info_name == C_Info::x) {
                 return car->x;
@@ -551,7 +547,7 @@ double LaneAbstract::get_car_info(int id_, C_Info info_name) const {
     return NAN;
 }
 
-Vehicle *LaneAbstract::get_car(int id_) {
+std::shared_ptr<Vehicle> LaneAbstract::get_car(int id_) {
     for (auto car: this->car_list) {
         if (car->ID == id_) {
             return car;
@@ -572,21 +568,21 @@ int LaneAbstract::car_insert_middle(int front_car_id, VehicleData &data) {
     }
 
     data.car_pos = follower_pos + follower_dhw / 2;
-    Vehicle *car = make_car(data);
+    std::shared_ptr<Vehicle> car = make_car(data);
     car_insert_by_instance(car, false);
     return car->ID;
 }
 
 int LaneAbstract::get_relative_id(int id_, int offset) {
-    Vehicle *car = get_relative_car_by_id(id_, offset);
+    std::shared_ptr<Vehicle> car = get_relative_car_by_id(id_, offset);
     if (car)
         return car->ID;
     return -1;
 }
 
-Vehicle *LaneAbstract::get_relative_car_by_id(int id_, int offset) {
-    Vehicle *car = nullptr;
-    for (auto c: car_list) {
+std::shared_ptr<Vehicle> LaneAbstract::get_relative_car_by_id(int id_, int offset) {
+    std::shared_ptr<Vehicle> car = nullptr;
+    for (const auto& c: car_list) {
         if (c->ID == id_) {
             while (offset != 0) {
                 if (offset > 0) {
@@ -610,7 +606,7 @@ Vehicle *LaneAbstract::get_relative_car_by_id(int id_, int offset) {
  * @param pos 要检索的位置
  * @return
  */
-std::pair<Vehicle *, Vehicle *> LaneAbstract::get_relative_car(double pos) {
+std::pair<std::shared_ptr<Vehicle>, std::shared_ptr<Vehicle>> LaneAbstract::get_relative_car(double pos) {
     if (pos > lane_length / 2) {
         for (int i = car_num() - 1; i >= 0; --i) {
             auto car = car_list[i];
@@ -640,7 +636,7 @@ void LaneAbstract::car_param_update(int id_,
                                     std::map<std::string, double> &cf_param,
                                     std::map<std::string, double> &lc_param,
                                     std::map<std::string, double> &car_param) {
-    Vehicle *car = get_car(id_);
+    std::shared_ptr<Vehicle> car = get_car(id_);
     if (car != nullptr) {
         car->cf_model->param_update(cf_param);
         car->lc_model->param_update(lc_param);
@@ -649,13 +645,6 @@ void LaneAbstract::car_param_update(int id_,
 }
 
 LaneAbstract::~LaneAbstract() {
-    for (auto *car: car_list) {
-        delete car;
-    }
-    for (auto *car: dummy_car_list) {
-        delete car;
-    }
-    delete data_container;
 }
 
 void LaneAbstract::car_summon() {
